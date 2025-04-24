@@ -82,10 +82,8 @@ let brush_size_set = false;
 let bright_set = false;
 let saturation_set = false;
 
-let color_random = false;
-let brush_random = false;
-
 let main_sketch;   // for the actual drawing
+let undo_sketch;   // to enable undos
 
 let xdim = 1920;
 let ydim = 1080;
@@ -132,6 +130,7 @@ let xbox_keymap = {
 
 function setup() {
 	main_sketch = createGraphics(xdim,ydim);
+	undo_sketch = createGraphics(xdim, ydim);
 
 	if (enable_webGL)
 		createCanvas(xdim, ydim, WEBGL);
@@ -201,8 +200,8 @@ function cartesian_to_hue(x, y) {
 			return hue(lerp_ret);
 		}
 	}
-
-	// angle in degrees is how my_hue is processed anyways
+	
+	// angle in degrees is how my_hue is processed anyways by default
 	return angle;
 }
 
@@ -253,7 +252,6 @@ function draw_cursor_gradient(){
 
 				fill(color(cursor_hue, cursor_sat, cursor_bright));
 				circle(x,y,2);
-				// console.log(x,y);
 			}
 		}
 	}
@@ -307,17 +305,6 @@ function right_trigger(val, is_button){
 
 		let new_hue = my_hue;
 		let new_brush_size = brush_size;
-		
-		if (color_random){
-			new_hue = my_hue + random(-10,10);
-			if (new_hue < 0)
-				new_hue += 360;
-			else if (new_hue > 360)
-				new_hue -= 360;
-		}
-		if (brush_random){
-			new_brush_size = brush_size + random(-3,3);
-		}
 
 		main_sketch.noStroke();
 		main_sketch.colorMode(HSB, 360, 100, 100, 100);
@@ -431,12 +418,6 @@ function controller_event_handler() {
 				switch(btn){
 					case xbox_keymap["A"]:
 						if (buttonPressed(val, btn)) {
-							color_random = !color_random;
-							if (color_random)
-								console.log("color randomized");
-							else
-								console.log("color derandomized");
-
 							if(debug_mode){
 								console.log("Pressed A");
 							}
@@ -444,12 +425,6 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["B"]:
 						if (buttonPressed(val, btn)) {
-							brush_random = !brush_random;
-							if (brush_random)
-								console.log("brush size randomized");
-							else 
-								console.log("brush size derandomized");
-
 							if(debug_mode){
 								console.log("Pressed B");
 							}
@@ -583,10 +558,7 @@ function controller_event_handler() {
 								// reset all
 								erase_counter = 0;
 								main_sketch.colorMode(RGB);
-								// main_sketch.background('black');
 								main_sketch.clear();
-								brush_random = false;
-								color_random = false;
 								brush_size_set = false;
 								saturation_set = false;
 								bright_set = false;
