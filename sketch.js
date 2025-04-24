@@ -49,7 +49,7 @@
  * 1.	A button to select the current H,S value on the color stick
  * 2.	Direct eraser button
  * 3.	Keymapping mode
- * 4.	Framerate checker (debug mode addition)
+ * 4.	Framerate checker (debug mode addition) **HALF DONE**
  * 5.	Undo mode (requires many many hours to implement; maybe) **IMPORTANT**
  * 6. 	Beginner / Tutorial mode
  * 7.	Multi-mode environment
@@ -183,85 +183,23 @@ function cartesian_to_hue(x, y) {
 	
 	let angle = cartesian_to_angle(x, y);
 
-	let lerp_ret;
-	let final_ret;
-	let blend_color1, blend_color2, blend_color3, blend_color4;
-
 	if (gradient_hues.length > 0 && gradient_hues_selected){
-		switch(gradient_hues.length){
-			case 1:
-				// replace the whole wheel with a single color
-				final_ret = gradient_hues[0];
-				break;
-			case 2:
-				if (gradient_hues[0] != -1 && gradient_hues[1] != -1){
-					// create colors in hsb
-					colorMode(HSB);
-					blend_color1 = color(gradient_hues[0],100,100);
-					blend_color2 = color(gradient_hues[1],100,100);
 
-					// interpolate colors in rgb
-					colorMode(RGB);
-					if(angle >= 0 && angle < 180){
-						lerp_ret = lerpColor(blend_color1, blend_color2, angle/180);						
-					} else {
-						lerp_ret = lerpColor(blend_color2, blend_color1, (angle-180)/180);
-					}
-					
-					// get my_hue of interpolated color in hsb
-					colorMode(HSB);
+		// if a custom gradient is selected
 
-					final_ret = hue(lerp_ret);
-				}
-				break;
-			case 3:
-				if (gradient_hues[0] != -1 && gradient_hues[1] != -1 && gradient_hues[2] != -1){
-					colorMode(HSB);
-					blend_color1 = color(gradient_hues[0],100,100);
-					blend_color2 = color(gradient_hues[1],100,100);
-					blend_color3 = color(gradient_hues[2],100,100);
+		if (gradient_hues.length == 1)
+			return gradient_hues[0];
+		else {
+			let gradient_hue_index1 = floor(angle/(360/gradient_hues.length));
+			let gradient_hue_index2 = (gradient_hue_index1+1) % gradient_hues.length;
 
-					colorMode(RGB);
-					if (angle >= 0 && angle < 120){
-						lerp_ret = lerpColor(blend_color1, blend_color2, angle/120);
-					} else if (angle >= 120 && angle < 240){
-						lerp_ret = lerpColor(blend_color2, blend_color3, (angle-120)/120);
-					} else {// if (angle >= 240 && angle <= 360){
-						lerp_ret = lerpColor(blend_color3, blend_color1, (angle-240)/120);
-					}
-
-					colorMode(HSB);
-
-					final_ret = hue(lerp_ret);
-					
-				}
-				break;
-			case 4:
-				if (gradient_hues[0] != -1 && gradient_hues[1] != -1 && gradient_hues[2] != -1 && gradient_hues[3] != -1){
-					colorMode(HSB);
-					blend_color1 = color(gradient_hues[0],100,100);
-					blend_color2 = color(gradient_hues[1],100,100);
-					blend_color3 = color(gradient_hues[2],100,100);
-					blend_color4 = color(gradient_hues[3],100,100);
-
-					colorMode(RGB);
-					if (angle >= 0 && angle < 90){
-						lerp_ret = lerpColor(blend_color1, blend_color2, angle/90);
-					} else if (angle >= 90 && angle < 180){
-						lerp_ret = lerpColor(blend_color2, blend_color3, (angle-90)/90);
-					} else if (angle >= 180 && angle < 270) {
-						lerp_ret = lerpColor(blend_color3, blend_color4, (angle-180)/90);
-					} else {
-						lerp_ret = lerpColor(blend_color4, blend_color1, (angle-270)/90);
-					}
-
-					colorMode(HSB);
-
-					final_ret = hue(lerp_ret);
-				}
+			colorMode(HSB);
+			let blend_color1 = color(gradient_hues[gradient_hue_index1], 100, 100);
+			let blend_color2 = color(gradient_hues[gradient_hue_index2], 100, 100);
+			let max_val_for_lerp = 360/gradient_hues.length;
+			let lerp_ret = lerpColor(blend_color1, blend_color2, (angle % max_val_for_lerp)/max_val_for_lerp);
+			return hue(lerp_ret);
 		}
-		
-		return final_ret;
 	}
 
 	// angle in degrees is how my_hue is processed anyways
