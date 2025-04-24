@@ -64,7 +64,7 @@
 
 let enable_webGL = false;
 let controllers = []
-let debug_mode = false;
+let debug_mode = true;
 let deadzone = 0.08; // change according to your calibration
 
 let released = [];
@@ -84,6 +84,11 @@ let saturation_set = false;
 
 let main_sketch;   // for the actual drawing
 let undo_sketch;   // to enable undos
+let redo_sketch;   // to save main sketch before the undo
+let saved_for_undo = false;
+let redo_pressed = false;
+let undo_checkpoint_pressed = false;
+let brush_applied = false;
 
 let xdim = 1920;
 let ydim = 1080;
@@ -131,6 +136,7 @@ let xbox_keymap = {
 function setup() {
 	main_sketch = createGraphics(xdim,ydim);
 	undo_sketch = createGraphics(xdim, ydim);
+	redo_sketch = createGraphics(xdim, ydim);
 
 	if (enable_webGL)
 		createCanvas(xdim, ydim, WEBGL);
@@ -163,7 +169,7 @@ function setup() {
 	my_bright = 100; // max 100
 
 	blendmode_selector_list = [BLEND, LIGHTEST, SOFT_LIGHT];
-	blendmode_selector = 1;
+	blendmode_selector = 0;
 	main_sketch.blendMode(blendmode_selector_list[blendmode_selector]);
 
 	// fullscreen(true);
@@ -203,6 +209,40 @@ function cartesian_to_hue(x, y) {
 	
 	// angle in degrees is how my_hue is processed anyways by default
 	return angle;
+}
+
+function save_for_undo(){
+	saved_for_undo = true;
+	redo_pressed = false;
+	undo_sketch.image(main_sketch, 0, 0);
+}
+
+function do_undo(){
+	if (saved_for_undo == false){
+		// cannot undo if not saved for it beforehand
+		// also cannot undo more than once
+		return;
+	}
+
+	saved_for_undo = false;
+	if (redo_pressed == true)
+		redo_pressed = false;
+
+	// save main sketch to reload for later
+	redo_sketch.clear();
+	redo_sketch.image(main_sketch, 0, 0);
+
+	main_sketch.clear();
+	main_sketch.image(undo_sketch, 0, 0);
+}
+
+function do_redo(){
+	if (redo_pressed == false){
+		save_for_undo();
+		main_sketch.clear();
+		main_sketch.image(redo_sketch, 0, 0);
+		redo_pressed = true;
+	}
 }
 
 function draw_cursor_gradient(){
@@ -289,7 +329,7 @@ function draw() {
 	text(fps, 50, 50);
 }
 
-function right_trigger(val, is_button){
+function brush_trigger(val, is_button){
 
 	// change behavior depending on 6 axes mode or 4 axes mode
 
@@ -303,6 +343,14 @@ function right_trigger(val, is_button){
 	}
 	if(val != -1 && val != 0){
 
+		if (brush_applied == false){
+			// brush is being applied for the first time
+			// if (undo_checkpoint_pressed == false){
+			// 	save_for_undo();
+			// }
+			brush_applied = true; 
+		}
+
 		let new_hue = my_hue;
 		let new_brush_size = brush_size;
 
@@ -314,10 +362,14 @@ function right_trigger(val, is_button){
 		if(debug_mode){
 			console.log("RT is being triggered");
 		}
+	} else {
+		if (brush_applied == true){
+			brush_applied = false;
+		}
 	}
 }
 
-function left_trigger(val, is_button){
+function brightness_trigger(val, is_button){
 
 	if (is_button){
 		// remap value to lie in [-1,1] instead of [0,1]
@@ -400,11 +452,11 @@ function controller_event_handler() {
 						break;
 					case xbox_axismap["RT"]:
 						if (controller.axes && controller.axes.length == 6)
-							right_trigger(val, false);
+							brush_trigger(val, false);
 						break;
 					case xbox_axismap["LT"]:
 						if (controller.axes && controller.axes.length == 6)
-							left_trigger(val, false);
+							brightness_trigger(val, false);
 						break;
 				}
 			}
@@ -418,6 +470,12 @@ function controller_event_handler() {
 				switch(btn){
 					case xbox_keymap["A"]:
 						if (buttonPressed(val, btn)) {
+							// if (undo_checkpoint_pressed == false){
+							// 	undo_checkpoint_pressed = true;
+								save_for_undo();
+							// } else {
+							// 	undo_checkpoint_pressed = false;
+							// }
 							if(debug_mode){
 								console.log("Pressed A");
 							}
@@ -425,6 +483,7 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["B"]:
 						if (buttonPressed(val, btn)) {
+							do_undo();
 							if(debug_mode){
 								console.log("Pressed B");
 							}
@@ -444,6 +503,7 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["Y"]:
 						if (buttonPressed(val, btn)){
+							do_redo();
 							if(debug_mode){
 								console.log("Pressed Y");
 							}
@@ -580,11 +640,11 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["RT"]:
 						if (controller.axes && controller.axes.length == 4)
-							right_trigger(val, true);
+							brush_trigger(val, true);
 						break;
 					case xbox_keymap["LT"]:
 						if (controller.axes && controller.axes.length == 4)
-							left_trigger(val, true);
+							brightness_trigger(val, true);
 						break;
 					case xbox_keymap["LSB"]:
 						if (buttonPressed(val, btn)) {
