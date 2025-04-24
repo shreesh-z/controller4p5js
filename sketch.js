@@ -30,6 +30,39 @@
  * Menu button : Cannot be assigned (due to interference with windows game mode)
  * Select button : Clear canvas (have to press it 3 times)
  */
+
+/**
+ * Bug list:
+ * 3.	Linear interpolation for diametrically opposite colors does not work
+ * 
+ * 		-- idk how to fix this; problem needs to be recontextualized before
+ * 		any further work is done on it
+ * 
+ * 4.	Framerate drops to ~40fps during non-default blend modes
+ * 
+ * 		-- issue will be fixed if JS is dropped. Can be done (?)
+ * 		I like p5.java, but p5.cpp may be best for performance
+ */
+
+/**
+ * Requested feature list:
+ * 1.	A button to select the current H,S value on the color stick
+ * 2.	Direct eraser button
+ * 3.	Keymapping mode
+ * 4.	Framerate checker (debug mode addition)
+ * 5.	Undo mode (requires many many hours to implement; maybe) **IMPORTANT**
+ * 6. 	Beginner / Tutorial mode
+ * 7.	Multi-mode environment
+ */
+
+/**
+ * Feature removal / changes:
+ * 1.	Color & brush size randomizer were not used during user testing
+ * 2.	Select & Start mappings to save & clear were not very unambiguous.
+ * 		Maybe add a dialogue option?
+ */
+
+let enable_webGL = false;
 let controllers = []
 let debug_mode = false;
 let deadzone = 0.08; // change according to your calibration
@@ -100,10 +133,12 @@ let xbox_keymap = {
 function setup() {
 	main_sketch = createGraphics(xdim,ydim);
 
-	// if (enable_webGL)
-	// 	createCanvas(xdim, ydim, WEBGL);
-	// else
+	if (enable_webGL)
+		createCanvas(xdim, ydim, WEBGL);
+	else
 		createCanvas(xdim, ydim);
+	
+	frameRate(240);
 	background(0, 0, 0);
 	noStroke();
 	window.addEventListener("gamepadconnected", function(e) {
@@ -128,20 +163,9 @@ function setup() {
 	my_sat = 0; // max 100
 	my_bright = 100; // max 100
 
-	var gamepads = navigator.getGamepads();
-	
-	for (let i in controllers) {
-		let controller = gamepads[i];
-		// first handle axes
-		if (controller.axes) {
-			controller.axes[xbox_axismap["LT"]] = -1;
-			controller.axes[xbox_axismap["RT"]] = -1;
-		}
-	}
-
-	main_sketch.blendMode(BLEND);
-
 	blendmode_selector_list = [BLEND, LIGHTEST, SOFT_LIGHT];
+	blendmode_selector = 1;
+	main_sketch.blendMode(blendmode_selector_list[blendmode_selector]);
 
 	// fullscreen(true);
 }
@@ -167,7 +191,7 @@ function cartesian_to_hue(x, y) {
 		switch(gradient_hues.length){
 			case 1:
 				// replace the whole wheel with a single color
-				final_ret = my_hue;
+				final_ret = gradient_hues[0];
 				break;
 			case 2:
 				if (gradient_hues[0] != -1 && gradient_hues[1] != -1){
@@ -187,7 +211,6 @@ function cartesian_to_hue(x, y) {
 					// get my_hue of interpolated color in hsb
 					colorMode(HSB);
 
-					// FIXME for some god damn reason my_hue(lerp_ret) DOES NOT work ???
 					final_ret = hue(lerp_ret);
 				}
 				break;
@@ -300,8 +323,8 @@ function draw_cursor_gradient(){
 
 function draw() {
 	
-	// if (enable_webGL)
-	// 	translate(-width/2,-height/2,0);
+	if (enable_webGL)
+		translate(-width/2,-height/2,0);
 
 	controller_event_handler();
 
@@ -322,6 +345,12 @@ function draw() {
 	} else {
 		circle(posX, posY, (max_brush_size-min_brush_size)/2);
 	}
+
+	colorMode(HSB);
+	let fps = int(frameRate());
+	fill(color(0,0,100));
+	textSize(20);
+	text(fps, 50, 50);
 }
 
 function right_trigger(val, is_button){
@@ -524,16 +553,18 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["DRight"]:
 						if (buttonPressed(val, btn)){
-							gradient_hues_selected = !gradient_hues_selected;
-							if (!gradient_hues_selected){
-								gradient_hues = [];
-								console.log("Cleared custom palette");
-							}else {
-								console.log("Created new custom palette of " + gradient_hues.length + " colors");
-							}
+							if (gradient_hues.length > 0){
+								gradient_hues_selected = !gradient_hues_selected;
+								if (!gradient_hues_selected){
+									gradient_hues = [];
+									console.log("Cleared custom palette");
+								}else {
+									console.log("Created new custom palette of " + gradient_hues.length + " colors");
+								}
 
-							if(debug_mode){
-								console.log("Pressed DRight");
+								if(debug_mode){
+									console.log("Pressed DRight");
+								}
 							}
 						}
 						break;
