@@ -72,11 +72,12 @@ let pressed = [];
 
 let brush_size = 5;
 let min_brush_size = 5;
-let max_brush_size = 40;
+let max_brush_size = 200;
+let max_cursor_size = 40;
 let posX, posY;
 let my_hue, my_sat, my_bright;
 let huesatX, huesatY;
-let moveSpeed = 5;
+let moveSpeed = 7;
 
 let brush_size_set = false;
 let bright_set = false;
@@ -144,7 +145,7 @@ function setup() {
 	else
 		createCanvas(xdim, ydim);
 	
-	frameRate(240);
+	frameRate(60);
 	background(0, 0, 0);
 	noStroke();
 	window.addEventListener("gamepadconnected", function(e) {
@@ -251,19 +252,19 @@ function do_redo(){
 
 function draw_cursor_gradient(){
 	colorMode(HSB);
-	for(var x = posX-max_brush_size; x < posX+max_brush_size; x++){
+	for(var x = posX-max_cursor_size; x < posX+max_cursor_size; x++){
 		if (x < 0 || x > width)
 			continue;
-		for(var y = posY-max_brush_size; y < posY+max_brush_size; y++){
+		for(var y = posY-max_cursor_size; y < posY+max_cursor_size; y++){
 			if (y < 0 || y > height)
 				continue;
 			let xstep = x - posX;
 			let ystep = y - posY;
 			let rad = Math.sqrt((xstep*xstep + ystep*ystep));
-			if ( rad <= max_brush_size ){
+			if ( rad > min_brush_size && rad <= max_cursor_size ){
 				let cursor_hue = cartesian_to_hue(xstep, ystep);
 				let cursor_angle = cartesian_to_angle(xstep, ystep);
-				let cursor_sat = (rad/max_brush_size)*100;
+				let cursor_sat = (rad/max_cursor_size)*100;
 				let cursor_bright = 100;
 				
 				let smallest_hue_diff = Infinity;
@@ -316,7 +317,7 @@ function draw() {
 
 	if (show_gradient_on_cursor){
 		draw_cursor_gradient();
-		cursor_brush_size = (max_brush_size-min_brush_size);
+		// cursor_brush_size = (max_brush_size-min_brush_size);
 	}
 	colorMode(HSB);
 	fill(color(my_hue, my_sat, my_bright));
@@ -326,11 +327,11 @@ function draw() {
 		circle(posX, posY, (max_brush_size-min_brush_size)/2);
 	}
 
-	// colorMode(HSB);
-	// let fps = int(frameRate());
-	// fill(color(0,0,100));
-	// textSize(20);
-	// text(fps, 50, 50);
+	colorMode(HSB);
+	let fps = int(frameRate());
+	fill(color(0,0,100));
+	textSize(20);
+	text(fps, 50, 50);
 }
 
 function brush_trigger(val, is_button){
@@ -345,6 +346,10 @@ function brush_trigger(val, is_button){
 	if(!brush_size_set){
 		brush_size = min_brush_size + ((val+1)/2)*max_brush_size;
 	}
+
+	if (show_gradient_on_cursor == true)
+		return;
+
 	if(val != -1 && val != 0){
 
 		if (brush_applied == false){
@@ -411,7 +416,7 @@ function controller_event_handler() {
 					case xbox_axismap["LSX"]:
 						if (abs(val) > deadzone) {
 							if ((posX <= 0 && val > 0) || (posX >= (width) && val < 0) || (posX > 0 && posX < (width))) {	
-								posX += moveSpeed * val;
+								posX += moveSpeed * val * (60/frameRate());
 							}
 							if (debug_mode)
 								console.log("LSX is being triggered");
@@ -420,7 +425,7 @@ function controller_event_handler() {
 					case xbox_axismap["LSY"]:
 						if (abs(val) > deadzone) {
 							if ((posY <= 0 && val > 0) || (posY >= (height) && val < 0) || (posY > 0 && posY < (height))) {
-								posY += moveSpeed * val;
+								posY += moveSpeed * val * (60/frameRate());
 							}
 							if (debug_mode)
 								console.log("LSY is being triggered");
