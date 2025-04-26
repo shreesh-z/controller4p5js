@@ -86,6 +86,7 @@ let main_sketch;   // for the actual drawing
 let undo_sketch;   // to enable undos
 let redo_sketch;   // to save main sketch before the undo
 let saved_for_undo = false;
+let undo_pressed = false;
 let redo_pressed = false;
 let undo_checkpoint_pressed = false;
 let brush_applied = false;
@@ -214,6 +215,7 @@ function cartesian_to_hue(x, y) {
 function save_for_undo(){
 	saved_for_undo = true;
 	redo_pressed = false;
+	undo_pressed = false;
 	undo_sketch.image(main_sketch, 0, 0);
 }
 
@@ -234,10 +236,12 @@ function do_undo(){
 
 	main_sketch.clear();
 	main_sketch.image(undo_sketch, 0, 0);
+
+	undo_pressed = true;
 }
 
 function do_redo(){
-	if (redo_pressed == false){
+	if (redo_pressed == false && undo_pressed == true){
 		save_for_undo();
 		main_sketch.clear();
 		main_sketch.image(redo_sketch, 0, 0);
@@ -322,11 +326,11 @@ function draw() {
 		circle(posX, posY, (max_brush_size-min_brush_size)/2);
 	}
 
-	colorMode(HSB);
-	let fps = int(frameRate());
-	fill(color(0,0,100));
-	textSize(20);
-	text(fps, 50, 50);
+	// colorMode(HSB);
+	// let fps = int(frameRate());
+	// fill(color(0,0,100));
+	// textSize(20);
+	// text(fps, 50, 50);
 }
 
 function brush_trigger(val, is_button){
@@ -345,9 +349,9 @@ function brush_trigger(val, is_button){
 
 		if (brush_applied == false){
 			// brush is being applied for the first time
-			// if (undo_checkpoint_pressed == false){
-			// 	save_for_undo();
-			// }
+			if (undo_checkpoint_pressed == false){
+				save_for_undo();
+			}
 			brush_applied = true; 
 		}
 
@@ -472,7 +476,7 @@ function controller_event_handler() {
 						if (buttonPressed(val, btn)) {
 							// if (undo_checkpoint_pressed == false){
 							// 	undo_checkpoint_pressed = true;
-								save_for_undo();
+								// save_for_undo();
 							// } else {
 							// 	undo_checkpoint_pressed = false;
 							// }
