@@ -64,7 +64,7 @@
 
 let enable_webGL = false;
 let controllers = []
-let debug_mode = true;
+let debug_mode = false;
 let deadzone = 0.08; // change according to your calibration
 
 let released = [];
@@ -75,9 +75,14 @@ let min_brush_size = 5;
 let max_brush_size = 200;
 let max_cursor_size = 40;
 let posX, posY;
+let velX, velY;
 let my_hue, my_sat, my_bright;
 let huesatX, huesatY;
 let moveSpeed = 7;
+// brush 0 : circle (default)
+// brush 1 : oval
+let brush_shape = 0;
+let max_brush_shape = 2;
 
 let brush_size_set = false;
 let bright_set = false;
@@ -135,6 +140,11 @@ let xbox_keymap = {
 	Menu: 16
 };
 
+let Brush = {
+	posX: 0,
+	posY: 0,
+};
+
 function setup() {
 	main_sketch = createGraphics(xdim,ydim);
 	undo_sketch = createGraphics(xdim, ydim);
@@ -175,6 +185,10 @@ function setup() {
 	main_sketch.blendMode(blendmode_selector_list[blendmode_selector]);
 
 	// fullscreen(true);
+}
+
+function cartesian_to_angle_radians(x, y){
+	return Math.atan2(y, x) * 180;
 }
 
 function cartesian_to_angle(x, y){
@@ -302,6 +316,27 @@ function draw_cursor_gradient(){
 	}
 }
 
+function reset_all(){
+	// reset all
+	erase_counter = 0;
+	main_sketch.colorMode(RGB);
+	main_sketch.clear();
+	save_for_undo();
+	brush_size_set = false;
+	saturation_set = false;
+	bright_set = false;
+	gradient_hues = [];
+	gradient_hues_selected = false;
+	my_hue = 0; my_sat = 0; my_bright = 100;
+
+	show_gradient_on_cursor = false;
+
+	blendmode_selector = 0;
+	main_sketch.blendMode(blendmode_selector_list[blendmode_selector]);
+
+	console.log("Canvas erased. All modes cleared to default");
+}
+
 function draw() {
 	
 	if (enable_webGL)
@@ -321,17 +356,23 @@ function draw() {
 	}
 	colorMode(HSB);
 	fill(color(my_hue, my_sat, my_bright));
-	if(brush_size > 0){
-		circle(posX, posY, cursor_brush_size);
-	} else {
-		circle(posX, posY, (max_brush_size-min_brush_size)/2);
+
+	let cursor_size_temp = brush_size > 0 ? cursor_brush_size : (max_brush_size-min_brush_size)/2;
+	if(brush_shape == 0){
+		circle(posX, posY, cursor_size_temp);
+	} else if(brush_shape == 1) {
+		push();
+		translate(posX, posY);
+		rotate(cartesian_to_angle(velX, velY));
+		ellipse(0, 0, cursor_size_temp, cursor_size_temp/2);
+		pop();
 	}
 
-	colorMode(HSB);
-	let fps = int(frameRate());
-	fill(color(0,0,100));
-	textSize(20);
-	text(fps, 50, 50);
+	// colorMode(HSB);
+	// let fps = int(frameRate());
+	// fill(color(0,0,100));
+	// textSize(20);
+	// text(fps, 50, 50);
 }
 
 function brush_trigger(val, is_button){
@@ -366,7 +407,17 @@ function brush_trigger(val, is_button){
 		main_sketch.noStroke();
 		main_sketch.colorMode(HSB, 360, 100, 100, 100);
 		main_sketch.fill(color(new_hue, my_sat, my_bright));
-		main_sketch.circle(posX, posY, new_brush_size);
+		if (brush_shape == 0)
+			main_sketch.circle(posX, posY, new_brush_size);
+		else if(brush_shape == 1){
+			main_sketch.push();
+			main_sketch.translate(posX, posY);
+			angleMode(DEGREES);
+			console.log(cartesian_to_angle(velX, velY));
+			main_sketch.rotate(cartesian_to_angle(velX, velY) + 90);
+			main_sketch.ellipse(0, 0, new_brush_size, new_brush_size/2);
+			main_sketch.pop();
+		}
 
 		if(debug_mode){
 			console.log("RT is being triggered");
@@ -415,7 +466,10 @@ function controller_event_handler() {
 				switch(ax){
 					case xbox_axismap["LSX"]:
 						if (abs(val) > deadzone) {
-							if ((posX <= 0 && val > 0) || (posX >= (width) && val < 0) || (posX > 0 && posX < (width))) {	
+							if ((posX <= 0 && val > 0) || (posX >= (width) && val < 0) || (posX > 0 && posX < (width))) {
+								console.log("LSX: "+val);	
+								// velX = moveSpeed * val * (60/frameRate());
+								velX = val;
 								posX += moveSpeed * val * (60/frameRate());
 							}
 							if (debug_mode)
@@ -425,6 +479,8 @@ function controller_event_handler() {
 					case xbox_axismap["LSY"]:
 						if (abs(val) > deadzone) {
 							if ((posY <= 0 && val > 0) || (posY >= (height) && val < 0) || (posY > 0 && posY < (height))) {
+								console.log("LSY: "+val);
+								velY = val;
 								posY += moveSpeed * val * (60/frameRate());
 							}
 							if (debug_mode)
@@ -563,6 +619,9 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["DLeft"]:
 						if (buttonPressed(val, btn)){
+
+							brush_shape = (brush_shape + 1) % max_brush_shape;
+
 							if(debug_mode){
 								console.log("Pressed DLeft");
 							}
@@ -624,23 +683,7 @@ function controller_event_handler() {
 							}
 
 							if(erase_counter == 3){
-								// reset all
-								erase_counter = 0;
-								main_sketch.colorMode(RGB);
-								main_sketch.clear();
-								brush_size_set = false;
-								saturation_set = false;
-								bright_set = false;
-								gradient_hues = [];
-								gradient_hues_selected = false;
-								my_hue = 0; my_sat = 0; my_bright = 100;
-
-								show_gradient_on_cursor = false;
-
-								blendmode_selector = 0;
-								main_sketch.blendMode(blendmode_selector_list[blendmode_selector]);
-
-								console.log("Canvas erased. All modes cleared to default");
+								reset_all();
 							} else{
 								console.log("Press the button " + (3-erase_counter) + " more times to erase canvas");
 								erase_counter++;
