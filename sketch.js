@@ -84,7 +84,8 @@ let save_sketch;   // sketch onto which image is saved
 let saved_for_undo = false;
 let undo_pressed = false;
 let redo_pressed = false;
-// let undo_checkpoint_pressed = false;
+// to flip between the undo/redo button's two states
+let undo_redo_selector = false;
 
 let paint, brush, paintbrush;
 
@@ -302,15 +303,6 @@ function controller_event_handler() {
 				switch(btn){
 					case xbox_keymap["Y"]:
 						if (buttonPressed(val, btn)) {
-							// if (undo_checkpoint_pressed == false){
-							// 	undo_checkpoint_pressed = true;
-								// save_for_undo();
-							// } else {
-							// 	undo_checkpoint_pressed = false;
-							// }
-
-							// not mapped
-
 							if(debug_mode){
 								console.log("Pressed Y");
 							}
@@ -318,7 +310,13 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["B"]:
 						if (buttonPressed(val, btn)) {
-							do_undo();
+							if (undo_redo_selector == false)
+								do_undo();
+							else
+								do_redo();
+
+							undo_redo_selector = !undo_redo_selector;
+							
 							if(debug_mode){
 								console.log("Pressed B");
 							}
@@ -336,7 +334,6 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["A"]:
 						if (buttonPressed(val, btn)){
-							do_redo();
 							if(debug_mode){
 								console.log("Pressed A");
 							}
@@ -771,10 +768,8 @@ class PaintBrush {
 	
 			if (this.stroke_applied == false) {
 				// brush is being applied for the first time
-				// TODO fix global variable access
-				// if (undo_checkpoint_pressed == false){
-				// }
 				save_for_undo();
+				undo_redo_selector = false;
 				this.stroke_applied = true; 
 			}
 
