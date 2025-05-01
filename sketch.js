@@ -87,6 +87,11 @@ let redo_pressed = false;
 // to flip between the undo/redo button's two states
 let undo_redo_selector = false;
 
+// to define the background color
+let bg_hue = 0;
+let bg_sat = 0;
+let bg_bright = 0;
+
 let paint, brush, paintbrush;
 
 let xdim = 1920;
@@ -135,7 +140,8 @@ function setup() {
 		screen_renderer = createCanvas(xdim, ydim);
 	
 	frameRate(60);
-	background(0, 0, 0);
+	colorMode(HSB);
+	background(bg_hue, bg_sat, bg_bright);
 	noStroke();
 	window.addEventListener("gamepadconnected", function(e) {
 		gamepadHandler(e, true);
@@ -169,8 +175,8 @@ function draw() {
 
 	controller_event_handler();
 
-	colorMode(RGB);
-	background('black');	
+	colorMode(HSB);
+	background(color(bg_hue, bg_sat, bg_bright));	
 	image(main_sketch, 0, 0);
 
 	paintbrush.show_current_paintbrush();
@@ -229,6 +235,11 @@ function reset_all(){
 	brush.reset();
 	paintbrush.reset();
 	paint.set_blendmode(main_sketch);
+
+	undo_redo_selector = false;
+	bg_hue = 0;
+	bg_sat = 0;
+	bg_bright = 0;
 
 	console.log("Canvas erased. All modes cleared to default");
 }
@@ -303,6 +314,9 @@ function controller_event_handler() {
 				switch(btn){
 					case xbox_keymap["Y"]:
 						if (buttonPressed(val, btn)) {
+							bg_hue = paint.my_hue;
+							bg_sat = paint.my_sat;
+							bg_bright = paint.my_bright;
 							if(debug_mode){
 								console.log("Pressed Y");
 							}
@@ -405,7 +419,8 @@ function controller_event_handler() {
 						if (buttonPressed(val, btn)) {
 							
 							save_sketch.clear();
-							save_sketch.background(0,0,0);
+							colorMode(HSB);
+							save_sketch.background(color(bg_hue, bg_sat, bg_bright));	
 							save_sketch.image(main_sketch, 0, 0);
 							saveCanvas(save_sketch);
 
