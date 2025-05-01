@@ -3,21 +3,23 @@ class Brush {
 	constructor(sketch_width, sketch_height){
 		this.my_width = sketch_width;
 		this.my_height = sketch_height;
+		this.brush_shapes = ['circle', 'ellipse'];
+		this.move_speed = 7;
 
-		this.posX = 0;
-		this.posY = 0;
-		this.my_width = -1;
-		this.my_height = -1;
+		this.reset();
+	};
+
+	reset(){
+		this.posX = this.my_width/2;
+		this.posY = this.my_height/2;
 		this.velX = 0;
 		this.velY = 0;
 		this.brush_size = 5;
 		this.min_brush_size = 5;
 		this.max_brush_size = 40;
-		this.move_speed = 7;
-		this.brush_shapes = ['circle', 'ellipse'];
 		this.brush_shape_index = 0;
 		this.is_brush_size_set = false;
-	};
+	}
 
 	moveX(val){
 		if ((this.posX <= 0 && val > 0) || (this.posX >= this.my_width && val < 0) || (this.posX > 0 && this.posX < this.my_width)) {

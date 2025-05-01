@@ -1,3 +1,9 @@
+// import "libraries/p5.min.js"
+// import "libraries/p5.sound.min.js"
+// import {PaintBrush} from "./paintbrush.js";
+// import {Paint} from "./paint.js";
+// import {Brush} from "./brush.js";
+
 /**
  * Instructions: Attach an Xbox controller and press the play button on the website
  * 
@@ -70,44 +76,20 @@ let deadzone = 0.08; // change according to your calibration
 let released = [];
 let pressed = [];
 
-let brush_size = 5;
-let min_brush_size = 5;
-let max_brush_size = 200;
-let max_cursor_size = 40;
-let posX, posY;
-let velX, velY;
-let my_hue, my_sat, my_bright;
-let huesatX, huesatY;
-let moveSpeed = 7;
-// brush 0 : circle (default)
-// brush 1 : oval
-let brush_shape = 0;
-let max_brush_shape = 2;
-
-let brush_size_set = false;
-let bright_set = false;
-let saturation_set = false;
-
+let screen_renderer; // the final canvas on the screen
 let main_sketch;   // for the actual drawing
 let undo_sketch;   // to enable undos
 let redo_sketch;   // to save main sketch before the undo
+let save_sketch;   // sketch onto which image is saved
 let saved_for_undo = false;
 let undo_pressed = false;
 let redo_pressed = false;
-let undo_checkpoint_pressed = false;
-let brush_applied = false;
+// let undo_checkpoint_pressed = false;
+
+let paint, brush, paintbrush;
 
 let xdim = 1920;
 let ydim = 1080;
-
-// used to keep track of gradient colors being mixed
-let gradient_hues = []
-let gradient_hues_selected = false;
-
-let show_gradient_on_cursor = false;
-
-let blendmode_selector = 0;
-let blendmode_selector_list;
 
 let erase_counter = 0;
 
@@ -140,20 +122,16 @@ let xbox_keymap = {
 	Menu: 16
 };
 
-let Brush = {
-	posX: 0,
-	posY: 0,
-};
-
 function setup() {
 	main_sketch = createGraphics(xdim,ydim);
 	undo_sketch = createGraphics(xdim, ydim);
 	redo_sketch = createGraphics(xdim, ydim);
+	save_sketch = createGraphics(xdim, ydim);
 
 	if (enable_webGL)
-		createCanvas(xdim, ydim, WEBGL);
+		screen_renderer = createCanvas(xdim, ydim, WEBGL);
 	else
-		createCanvas(xdim, ydim);
+		screen_renderer = createCanvas(xdim, ydim);
 	
 	frameRate(60);
 	background(0, 0, 0);
@@ -173,58 +151,34 @@ function setup() {
 		released[i] = true;
 		pressed[i] = false;
 	}
-	posX = width / 2;
-	posY = height / 2;
+	
+	paint = new Paint([BLEND, LIGHTEST, SOFT_LIGHT]);
+	brush = new Brush(xdim, ydim);
+	paintbrush = new PaintBrush(paint, brush);
 
-	my_hue = 0; // max 360
-	my_sat = 0; // max 100
-	my_bright = 100; // max 100
-
-	blendmode_selector_list = [BLEND, LIGHTEST, SOFT_LIGHT];
-	blendmode_selector = 0;
-	main_sketch.blendMode(blendmode_selector_list[blendmode_selector]);
+	paint.set_blendmode(main_sketch);
 
 	// fullscreen(true);
 }
 
-function cartesian_to_angle_radians(x, y){
-	return Math.atan2(y, x) * 180;
-}
-
-function cartesian_to_angle(x, y){
-	let angle = (Math.atan2(y, x) * 180) / Math.PI;
-	if (angle < 0) {
-		angle = 360 + angle; // angle is in degrees, belonging to [0,360] cyclic
-	}
-
-	return angle;
-}
-
-function cartesian_to_hue(x, y) {
+function draw() {
 	
-	let angle = cartesian_to_angle(x, y);
+	if (enable_webGL)
+		translate(-width/2,-height/2,0);
 
-	if (gradient_hues.length > 0 && gradient_hues_selected){
+	controller_event_handler();
 
-		// if a custom gradient is selected
+	colorMode(RGB);
+	background('black');	
+	image(main_sketch, 0, 0);
 
-		if (gradient_hues.length == 1)
-			return gradient_hues[0];
-		else {
-			let gradient_hue_index1 = floor(angle/(360/gradient_hues.length));
-			let gradient_hue_index2 = (gradient_hue_index1+1) % gradient_hues.length;
+	paintbrush.show_current_paintbrush();
 
-			colorMode(HSB);
-			let blend_color1 = color(gradient_hues[gradient_hue_index1], 100, 100);
-			let blend_color2 = color(gradient_hues[gradient_hue_index2], 100, 100);
-			let max_val_for_lerp = 360/gradient_hues.length;
-			let lerp_ret = lerpColor(blend_color1, blend_color2, (angle % max_val_for_lerp)/max_val_for_lerp);
-			return hue(lerp_ret);
-		}
-	}
-	
-	// angle in degrees is how my_hue is processed anyways by default
-	return angle;
+	// colorMode(HSB);
+	// let fps = int(frameRate());
+	// fill(color(0,0,100));
+	// textSize(20);
+	// text(fps, 50, 50);
 }
 
 function save_for_undo(){
@@ -264,192 +218,18 @@ function do_redo(){
 	}
 }
 
-function draw_cursor_gradient(){
-	colorMode(HSB);
-	for(var x = posX-max_cursor_size; x < posX+max_cursor_size; x++){
-		if (x < 0 || x > width)
-			continue;
-		for(var y = posY-max_cursor_size; y < posY+max_cursor_size; y++){
-			if (y < 0 || y > height)
-				continue;
-			let xstep = x - posX;
-			let ystep = y - posY;
-			let rad = Math.sqrt((xstep*xstep + ystep*ystep));
-			if ( rad > min_brush_size && rad <= max_cursor_size ){
-				let cursor_hue = cartesian_to_hue(xstep, ystep);
-				let cursor_angle = cartesian_to_angle(xstep, ystep);
-				let cursor_sat = (rad/max_cursor_size)*100;
-				let cursor_bright = 100;
-				
-				let smallest_hue_diff = Infinity;
-				
-				let gradient_hues_extended;
-				if (!gradient_hues_selected)
-					gradient_hues_extended = [...gradient_hues];
-				else gradient_hues_extended = [];
-
-				if (my_sat > 50)
-					gradient_hues_extended.push(cartesian_to_angle(huesatX, huesatY));
-
-				if (gradient_hues_extended.length > 0){
-					for (var i = 0; i < gradient_hues_extended.length; i++){
-						let hue_diff;
-						hue_diff = gradient_hues_extended[i] - cursor_angle;
-						
-						if (hue_diff > 360)
-							hue_diff -= 360;
-						if (hue_diff < 0)
-							hue_diff += 360;
-
-						if(abs(hue_diff) < smallest_hue_diff)
-							smallest_hue_diff = abs(hue_diff); 
-					}
-
-					if(smallest_hue_diff > 10)
-						cursor_bright = 50;
-				}
-
-				fill(color(cursor_hue, cursor_sat, cursor_bright));
-				circle(x,y,2);
-			}
-		}
-	}
-}
-
 function reset_all(){
-	// reset all
 	erase_counter = 0;
-	main_sketch.colorMode(RGB);
+	colorMode(RGB);
 	main_sketch.clear();
 	save_for_undo();
-	brush_size_set = false;
-	saturation_set = false;
-	bright_set = false;
-	gradient_hues = [];
-	gradient_hues_selected = false;
-	my_hue = 0; my_sat = 0; my_bright = 100;
 
-	show_gradient_on_cursor = false;
-
-	blendmode_selector = 0;
-	main_sketch.blendMode(blendmode_selector_list[blendmode_selector]);
+	paint.reset();
+	brush.reset();
+	paintbrush.reset();
+	paint.set_blendmode(main_sketch);
 
 	console.log("Canvas erased. All modes cleared to default");
-}
-
-function draw() {
-	
-	if (enable_webGL)
-		translate(-width/2,-height/2,0);
-
-	controller_event_handler();
-
-	colorMode(RGB);
-	background('black');	
-	image(main_sketch, 0, 0);
-
-	let cursor_brush_size = brush_size;
-
-	if (show_gradient_on_cursor){
-		draw_cursor_gradient();
-		// cursor_brush_size = (max_brush_size-min_brush_size);
-	}
-	colorMode(HSB);
-	fill(color(my_hue, my_sat, my_bright));
-
-	let cursor_size_temp = brush_size > 0 ? cursor_brush_size : (max_brush_size-min_brush_size)/2;
-	if(brush_shape == 0){
-		circle(posX, posY, cursor_size_temp);
-	} else if(brush_shape == 1) {
-		push();
-		translate(posX, posY);
-		rotate(cartesian_to_angle(velX, velY));
-		ellipse(0, 0, cursor_size_temp, cursor_size_temp/2);
-		pop();
-	}
-
-	// colorMode(HSB);
-	// let fps = int(frameRate());
-	// fill(color(0,0,100));
-	// textSize(20);
-	// text(fps, 50, 50);
-}
-
-function brush_trigger(val, is_button){
-
-	// change behavior depending on 6 axes mode or 4 axes mode
-
-	if (is_button){
-		// remap value to lie in [-1,1] instead of [0,1]
-		val = 2*val.value - 1;
-	}
-
-	if(!brush_size_set){
-		brush_size = min_brush_size + ((val+1)/2)*max_brush_size;
-	}
-
-	if (show_gradient_on_cursor == true)
-		return;
-
-	if(val != -1 && val != 0){
-
-		if (brush_applied == false){
-			// brush is being applied for the first time
-			if (undo_checkpoint_pressed == false){
-				save_for_undo();
-			}
-			brush_applied = true; 
-		}
-
-		let new_hue = my_hue;
-		let new_brush_size = brush_size;
-
-		main_sketch.noStroke();
-		main_sketch.colorMode(HSB, 360, 100, 100, 100);
-		main_sketch.fill(color(new_hue, my_sat, my_bright));
-		if (brush_shape == 0)
-			main_sketch.circle(posX, posY, new_brush_size);
-		else if(brush_shape == 1){
-			main_sketch.push();
-			main_sketch.translate(posX, posY);
-			angleMode(DEGREES);
-			console.log(cartesian_to_angle(velX, velY));
-			main_sketch.rotate(cartesian_to_angle(velX, velY) + 90);
-			main_sketch.ellipse(0, 0, new_brush_size, new_brush_size/2);
-			main_sketch.pop();
-		}
-
-		if(debug_mode){
-			console.log("RT is being triggered");
-		}
-	} else {
-		if (brush_applied == true){
-			brush_applied = false;
-		}
-	}
-}
-
-function brightness_trigger(val, is_button){
-
-	if (is_button){
-		// remap value to lie in [-1,1] instead of [0,1]
-		val = 2*val.value - 1;
-	}
-
-	if (!bright_set){
-		if(val != 0){
-			if (val != -1){
-				my_bright = 50*(1-val);
-			}
-			else{
-				my_bright = 100;
-			}
-			
-			if(val != -1 && debug_mode){
-				console.log("LT is being triggered");
-			}
-		}
-	}
 }
 
 function controller_event_handler() {
@@ -466,66 +246,49 @@ function controller_event_handler() {
 				switch(ax){
 					case xbox_axismap["LSX"]:
 						if (abs(val) > deadzone) {
-							if ((posX <= 0 && val > 0) || (posX >= (width) && val < 0) || (posX > 0 && posX < (width))) {
-								console.log("LSX: "+val);	
-								// velX = moveSpeed * val * (60/frameRate());
-								if (abs(val) > 0.1){
-									velX = val;
-								}
-								posX += moveSpeed * val * (60/frameRate());
-							}
+							
+							brush.moveX(val);
+							
 							if (debug_mode)
 								console.log("LSX is being triggered");
 						}
 						break;
 					case xbox_axismap["LSY"]:
 						if (abs(val) > deadzone) {
-							if ((posY <= 0 && val > 0) || (posY >= (height) && val < 0) || (posY > 0 && posY < (height))) {
-								console.log("LSY: "+val);
-								if (abs(val) > 0.1){
-									velY = val;
-								}
-								posY += moveSpeed * val * (60/frameRate());
-							}
+							
+							brush.moveY(val);
+							
 							if (debug_mode)
 								console.log("LSY is being triggered");
 						}
 						break;
 					case xbox_axismap["RSX"]:
+						if (abs(val) > deadzone) {
+							
+							paint.update_HSX(val);
+
+							if (debug_mode){
+								console.log("RSX is being triggered");
+							}
+						}
+						break;
 					case xbox_axismap["RSY"]:
 						if (abs(val) > deadzone) {
 
-							if (ax == xbox_axismap["RSX"]){
-								huesatX = val;
-							}
-							else {
-								huesatY = val;
-							}
-							my_hue = cartesian_to_hue(huesatX, huesatY);
+							paint.update_HSY(val);
 							
-							if (!saturation_set){
-								let new_sat = Math.sqrt((huesatX*huesatX + huesatY*huesatY));
-								if (new_sat > 0.9){
-									my_sat = 100;
-								} else {
-									my_sat = new_sat*100;
-								}
-							}
-
 							if (debug_mode){
-								if (ax == xbox_axismap["RSX"])
-									console.log("RSX is being triggered");
-								else console.log("RSY is being triggered");
+								console.log("RSY is being triggered");
 							}
 						}
 						break;
 					case xbox_axismap["RT"]:
 						if (controller.axes && controller.axes.length == 6)
-							brush_trigger(val, false);
+							paintbrush.draw_on_canvas(main_sketch, val, false);
 						break;
 					case xbox_axismap["LT"]:
 						if (controller.axes && controller.axes.length == 6)
-							brightness_trigger(val, false);
+							paint.update_brightness(val, false);
 						break;
 				}
 			}
@@ -537,7 +300,7 @@ function controller_event_handler() {
 			for (var btn = 0; btn < controller.buttons.length; btn++) {
 				let val = controller.buttons[btn];
 				switch(btn){
-					case xbox_keymap["A"]:
+					case xbox_keymap["Y"]:
 						if (buttonPressed(val, btn)) {
 							// if (undo_checkpoint_pressed == false){
 							// 	undo_checkpoint_pressed = true;
@@ -545,8 +308,11 @@ function controller_event_handler() {
 							// } else {
 							// 	undo_checkpoint_pressed = false;
 							// }
+
+							// not mapped
+
 							if(debug_mode){
-								console.log("Pressed A");
+								console.log("Pressed Y");
 							}
 						}
 						break;
@@ -560,59 +326,46 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["X"]:
 						if (buttonPressed(val, btn)) {
-							blendmode_selector = (blendmode_selector+1) % blendmode_selector_list.length;
-							main_sketch.blendMode(blendmode_selector_list[blendmode_selector]);
-
-							console.log("Blend mode changed to " + blendmode_selector_list[blendmode_selector]);
+							
+							paint.cycle_blendmode(main_sketch);
 							
 							if(debug_mode){
 								console.log("Pressed X");
 							}
 						}
 						break;
-					case xbox_keymap["Y"]:
+					case xbox_keymap["A"]:
 						if (buttonPressed(val, btn)){
 							do_redo();
 							if(debug_mode){
-								console.log("Pressed Y");
+								console.log("Pressed A");
 							}
 						}
 						break;
 					case xbox_keymap["DUp"]:
 						if (buttonPressed(val, btn)){
-							if (gradient_hues.length < 4 && !gradient_hues_selected){
-								gradient_hues.push(my_hue);
+							
+							paint.add_current_hue_to_custom_palette();
 
-								console.log("Selected hue #" + gradient_hues.length + " as part of new palette");
-								
-								if(debug_mode){
-									console.log("Pressed Dup");
-								}
-							} else {
-								console.log("Only up to 4 colors allowed in a custom palette!");
+							if(debug_mode){
+								console.log("Pressed DUp");
 							}
 						}
 						break;
 					case xbox_keymap["DRight"]:
 						if (buttonPressed(val, btn)){
-							if (gradient_hues.length > 0){
-								gradient_hues_selected = !gradient_hues_selected;
-								if (!gradient_hues_selected){
-									gradient_hues = [];
-									console.log("Cleared custom palette");
-								}else {
-									console.log("Created new custom palette of " + gradient_hues.length + " colors");
-								}
+							
+							paint.toggle_custom_palette();
 
-								if(debug_mode){
-									console.log("Pressed DRight");
-								}
+							if(debug_mode){
+								console.log("Pressed DRight");
 							}
 						}
 						break;
 					case xbox_keymap["DDown"]:
 						if (buttonPressed(val, btn)){
-							show_gradient_on_cursor = !show_gradient_on_cursor;
+							
+							paintbrush.toggle_cursor_display();
 
 							console.log("Showing current color palette gradient on cursor");
 
@@ -624,7 +377,7 @@ function controller_event_handler() {
 					case xbox_keymap["DLeft"]:
 						if (buttonPressed(val, btn)){
 
-							brush_shape = (brush_shape + 1) % max_brush_shape;
+							brush.cycle_brush_shape();
 
 							if(debug_mode){
 								console.log("Pressed DLeft");
@@ -633,13 +386,8 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["RB"]:
 						if (buttonPressed(val, btn)) {
-							brush_size_set = !brush_size_set;
-
-							if (brush_size_set){
-								console.log("Locked the brush size to radius " + brush_size + "px");
-							} else {
-								console.log("Unlocked brush size");
-							}
+							
+							brush.toggle_brush_size_lock();
 
 							if(debug_mode){
 								console.log("Pressed RB");
@@ -648,13 +396,8 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["LB"]:
 						if (buttonPressed(val, btn)) {
-							bright_set = !bright_set;
-
-							if (bright_set){
-								console.log("Locked the brightness to " + my_bright + "%");
-							} else {
-								console.log("Unlocked brightness");
-							}
+							
+							paint.toggle_set_brightness();
 
 							if(debug_mode){
 								console.log("Pressed LB");
@@ -663,7 +406,11 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["Start"]:
 						if (buttonPressed(val, btn)) {
-							saveCanvas(main_sketch);
+							
+							save_sketch.clear();
+							save_sketch.background(0,0,0);
+							save_sketch.image(main_sketch, 0, 0);
+							saveCanvas(save_sketch);
 
 							console.log("Downloaded sketch");
 
@@ -675,7 +422,7 @@ function controller_event_handler() {
 					case xbox_keymap["Menu"]:
 						if (buttonPressed(val, btn)){
 							if(debug_mode){
-								console.log("Pressed Select");
+								console.log("Pressed Menu");
 							}
 						}
 						break;
@@ -683,7 +430,7 @@ function controller_event_handler() {
 						if (buttonPressed(val, btn)) {
 
 							if(debug_mode){
-								console.log("Pressed Menu");
+								console.log("Pressed Select");
 							}
 
 							if(erase_counter == 3){
@@ -696,17 +443,16 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["RT"]:
 						if (controller.axes && controller.axes.length == 4)
-							brush_trigger(val, true);
+							paintbrush.draw_on_canvas(main_sketch, val, true);
 						break;
 					case xbox_keymap["LT"]:
 						if (controller.axes && controller.axes.length == 4)
-							brightness_trigger(val, true);
+							paint.update_brightness(val, true);
 						break;
 					case xbox_keymap["LSB"]:
 						if (buttonPressed(val, btn)) {
-							saturation_set = !saturation_set;
-
-							console.log("Locked color to " + my_hue + " hue and " + my_sat + "% saturation");
+							
+							paint.toggle_set_saturation();
 
 							if(debug_mode){
 								console.log("Pressed LSB");
@@ -715,10 +461,9 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["RSB"]:
 						if (buttonPressed(val, btn)) {
-							// reset color to white
-							my_hue = 0; my_sat = 0; my_bright = 100;
 
-							console.log("Reset color to white");
+							
+							brush.cycle_max_brush_size();
 
 							if(debug_mode){
 								console.log("Pressed RSB");
@@ -761,3 +506,357 @@ function buttonPressed(b, index){
 	}
 	return b > 0.9;
 }
+
+function cartesian_to_angle(x, y){
+	let angle = (Math.atan2(y, x) * 180) / Math.PI;
+	if (angle < 0) {
+		angle = 360 + angle; // angle is in degrees, belonging to [0,360] cyclic
+	}
+	return angle;
+};
+
+class Brush {
+
+	constructor(sketch_width, sketch_height){
+		this.my_width = sketch_width;
+		this.my_height = sketch_height;
+		this.brush_shapes = ['circle', 'ellipse'];
+		this.move_speed = 7;
+
+		this.reset();
+	};
+
+	reset(){
+		this.posX = this.my_width/2;
+		this.posY = this.my_height/2;
+		this.velX = 0;
+		this.velY = 0;
+		this.brush_size = 5;
+		this.min_brush_size = 5;
+		this.max_brush_size = 40;
+		this.max_brush_size_first_step = 40;
+		this.max_brush_size_multiplier = 1;
+		this.max_brush_size_max_steps = 4;
+		this.brush_shape_index = 0;
+		this.is_brush_size_set = false;
+	}
+
+	moveX(val){
+		if ((this.posX <= 0 && val > 0) || (this.posX >= this.my_width && val < 0) || (this.posX > 0 && this.posX < this.my_width)) {
+			this.velX = this.move_speed * val * (60/frameRate());
+			this.posX += this.velX;
+		}
+	}
+
+	moveY(val){
+		if ((this.posY <= 0 && val > 0) || (this.posY >= this.my_height && val < 0) || (this.posY > 0 && this.posY < this.my_height)) {
+			this.velY = this.move_speed * val * (60/frameRate());
+			this.posY += this.velY;
+		}
+	}
+
+	update_brush_size(val, is_button){
+		if (is_button){
+			// remap value to lie in [-1,1] instead of [0,1]
+			val = 2*val.value - 1;
+		}
+
+		if(!this.is_brush_size_set){
+			this.brush_size = this.min_brush_size + ((val+1)/2)*this.max_brush_size;
+		}		
+	}
+
+	cycle_max_brush_size(){
+		this.max_brush_size_multiplier++;
+		if (this.max_brush_size_multiplier > this.max_brush_size_max_steps)
+			this.max_brush_size_multiplier = 1;
+		this.max_brush_size = this.max_brush_size_multiplier * this.max_brush_size_first_step;
+	}
+
+	cycle_brush_shape(){
+		this.brush_shape_index = (this.brush_shape_index + 1) % this.brush_shapes.length;
+	}
+
+	toggle_brush_size_lock(){
+		this.is_brush_size_set = !this.is_brush_size_set
+	}
+};
+
+class Paint {
+	// pass the list of blendmodes;
+	// first element is default
+	constructor(blendmode_list){
+		this.reset();
+		this.blendmode_selector_list = blendmode_list;
+	}
+
+	reset(){
+		this.my_hue = 0;
+		this.my_sat = 0;
+		this.my_bright = 100;
+
+		// indicator for where the analog stick is in HS space
+		this.huesatX = 0;
+		this.huesatY = 0;
+
+		this.is_bright_set = false;
+		this.is_sat_set = false;
+		this.custom_palette_hues = [];
+		this.are_custom_palette_hues_selected = false;
+
+		this.blendmode_selector = 0;
+	}
+
+	cartesian_to_hue(x, y) {
+	
+		let angle = cartesian_to_angle(x, y);
+	
+		if (this.custom_palette_hues.length > 0 && this.are_custom_palette_hues_selected){
+	
+			// if a custom gradient is selected
+	
+			if (this.custom_palette_hues.length == 1)
+				return this.custom_palette_hues[0];
+			else {
+				let gradient_hue_index1 = floor(angle/(360/this.custom_palette_hues.length));
+				let gradient_hue_index2 = (gradient_hue_index1+1) % this.custom_palette_hues.length;
+	
+				colorMode(HSB);
+				let blend_color1 = color(this.custom_palette_hues[gradient_hue_index1], 100, 100);
+				let blend_color2 = color(this.custom_palette_hues[gradient_hue_index2], 100, 100);
+				let max_val_for_lerp = 360/this.custom_palette_hues.length;
+				let lerp_ret = lerpColor(blend_color1, blend_color2, (angle % max_val_for_lerp)/max_val_for_lerp);
+				return hue(lerp_ret);
+			}
+		}
+		
+		// angle in degrees is how my_hue is processed anyways by default
+		return angle;
+	}
+
+	__update_HS(){
+		this.my_hue = this.cartesian_to_hue(this.huesatX, this.huesatY);
+
+		if (!this.is_saturation_set){
+			let new_sat = Math.sqrt((this.huesatX*this.huesatX + this.huesatY*this.huesatY));
+			if (new_sat > 0.9){
+				this.my_sat = 100;
+			} else {
+				this.my_sat = new_sat*100;
+			}
+		}
+	}
+
+	update_HSX(val){
+		this.huesatX = val;
+		this.__update_HS();
+	}
+	update_HSY(val){
+		this.huesatY = val;
+		this.__update_HS();
+	}
+
+	update_brightness(val, is_button){
+		if (is_button){
+			// remap value to lie in [-1,1] instead of [0,1]
+			val = 2*val.value - 1;
+		}
+
+		if (!this.is_bright_set){
+			if(val != 0){
+				if (val != -1){
+					this.my_bright = 50*(1-val);
+				}
+				else{
+					this.my_bright = 100;
+				}
+			}
+		}
+	}
+
+	set_blendmode(canvas){
+		canvas.blendMode(this.blendmode_selector_list[this.blendmode_selector]);
+	}
+
+	cycle_blendmode(canvas){
+		this.blendmode_selector = (this.blendmode_selector+1) % this.blendmode_selector_list.length;
+		canvas.blendMode(this.blendmode_selector_list[this.blendmode_selector]);
+	}
+
+	add_current_hue_to_custom_palette(){
+		if (this.custom_palette_hues.length < 4 && !this.are_custom_palette_hues_selected){
+			this.custom_palette_hues.push(this.my_hue);
+		}
+	}
+
+	toggle_custom_palette(){
+		if (this.custom_palette_hues.length > 0){
+			this.are_custom_palette_hues_selected = !this.are_custom_palette_hues_selected;
+			if (!this.are_custom_palette_hues_selected){
+				this.custom_palette_hues = [];
+			}
+		}
+	}
+
+	toggle_set_saturation(){
+		this.is_sat_set = !this.is_sat_set;
+	}
+
+	toggle_set_brightness(){
+		this.is_bright_set = !this.is_bright_set;
+	}
+};
+
+class PaintBrush {
+	constructor(paint, brush){
+		this.paint = paint;
+		this.brush = brush;
+
+		this.min_cursor_size = 10;
+		this.max_cursor_size = 40;
+
+		this.reset();
+	}
+
+	reset(){
+		this.stroke_applied = false;
+		this.show_gradient_on_cursor = false;
+	}
+
+	toggle_cursor_display(){
+		this.show_gradient_on_cursor = !this.show_gradient_on_cursor;
+	}
+
+	show_current_paintbrush(){
+		// to only show the paintbrush, not to commit to it on main_sketch
+
+		if (this.show_gradient_on_cursor){
+			this.__draw_cursor();
+		}
+
+		colorMode(HSB);
+		fill(color(this.paint.my_hue, this.paint.my_sat, this.paint.my_bright));
+
+		let cursor_size_temp;
+		
+		if (this.show_gradient_on_cursor){
+			cursor_size_temp = this.brush.brush_size > this.min_cursor_size ?
+								this.brush.brush_size :
+								(this.brush.max_brush_size-this.brush.min_brush_size)/2;
+		} else {
+			cursor_size_temp = this.brush.brush_size > 0 ?
+								this.brush.brush_size :
+								(this.brush.max_brush_size-this.brush.min_brush_size)/2;
+		}
+		
+		if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'circle'){
+			circle(this.brush.posX, this.brush.posY, cursor_size_temp);
+		} else if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'ellipse') {
+			push();
+			translate(this.brush.posX, this.brush.posY);
+			rotate(cartesian_to_angle(this.brush.velX, this.brush.velY));
+			ellipse(0, 0, cursor_size_temp, cursor_size_temp/2);
+			pop();
+		}
+	}
+
+	draw_on_canvas(canvas, val, is_button){
+		
+		this.brush.update_brush_size(val, is_button);
+	
+		if (this.show_gradient_on_cursor == true)
+			return;
+	
+		if(val != -1 && val != 0){
+	
+			if (this.stroke_applied == false) {
+				// brush is being applied for the first time
+				// TODO fix global variable access
+				// if (undo_checkpoint_pressed == false){
+				// }
+				save_for_undo();
+				this.stroke_applied = true; 
+			}
+
+			canvas.noStroke();
+			colorMode(HSB); //, 360, 100, 100, 100);
+			canvas.fill(color(this.paint.my_hue, this.paint.my_sat, this.paint.my_bright));
+			
+			if (this.brush.brush_shapes[this.brush.brush_shape_index] == 'circle'){
+				canvas.circle(this.brush.posX, this.brush.posY, this.brush.brush_size);
+			}
+			else if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'ellipse'){
+				canvas.push();
+				canvas.translate(this.brush.posX, this.brush.posY);
+				angleMode(DEGREES);
+				canvas.rotate(cartesian_to_angle(this.brush.velX, this.brush.velY));
+				canvas.ellipse(0, 0, this.brush.brush_size, this.brush.brush_size/2);
+				canvas.pop();
+			}
+			
+		} else {
+			if (this.stroke_applied == true){
+				this.stroke_applied = false;
+			}
+		}
+	}
+	
+	__draw_cursor(){
+		colorMode(HSB);
+		for(var x = this.brush.posX-this.max_cursor_size; x < this.brush.posX+this.max_cursor_size; x++){
+			if (x < 0 || x > width)
+				continue;
+			for(var y = this.brush.posY-this.max_cursor_size; y < this.brush.posY+this.max_cursor_size; y++){
+				if (y < 0 || y > height)
+					continue;
+
+				let xstep = x - this.brush.posX;
+				let ystep = y - this.brush.posY;
+				let rad = Math.sqrt((xstep*xstep + ystep*ystep));
+
+				if ( rad > this.min_cursor_size && rad <= this.max_cursor_size ){
+					
+					let cursor_hue = this.paint.cartesian_to_hue(xstep, ystep);
+					let cursor_angle = cartesian_to_angle(xstep, ystep);
+					let cursor_sat = (rad/this.max_cursor_size)*100;
+					let cursor_bright = 100;
+					
+					let smallest_angle_diff = Infinity;
+					
+					// to be able to add current hue being pointed to;
+					// so it shows up highlighted
+					let custom_palette_hues_extended;
+					if (!this.paint.are_custom_palette_hues_selected)
+						custom_palette_hues_extended = [...this.paint.custom_palette_hues];
+					else custom_palette_hues_extended = [];
+	
+					if (this.paint.my_sat > 50)
+						custom_palette_hues_extended.push(cartesian_to_angle(this.paint.huesatX, this.paint.huesatY));
+
+					console.log(cartesian_to_angle(this.paint.huesatX, this.paint.huesatY));
+	
+					if (custom_palette_hues_extended.length > 0){
+						for (var i = 0; i < custom_palette_hues_extended.length; i++){
+							let angle_diff;
+							angle_diff = custom_palette_hues_extended[i] - cursor_angle;
+							
+							if (angle_diff > 360)
+								angle_diff -= 360;
+							if (angle_diff < 0)
+								angle_diff += 360;
+	
+							if(abs(angle_diff) < smallest_angle_diff)
+								smallest_angle_diff = abs(angle_diff); 
+						}
+	
+						if(smallest_angle_diff > 10)
+							cursor_bright = 50;
+					}
+					
+					fill(color(cursor_hue, cursor_sat, cursor_bright));
+					circle(x,y,2);
+				}
+			}
+		}
+	}
+};

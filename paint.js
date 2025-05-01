@@ -2,9 +2,14 @@ class Paint {
 	// pass the list of blendmodes;
 	// first element is default
 	constructor(blendmode_list){
+		this.reset();
+		this.blendmode_selector_list = blendmode_list;
+	}
+
+	reset(){
 		this.my_hue = 0;
 		this.my_sat = 0;
-		this.my_bright = 0;
+		this.my_bright = 100;
 
 		// indicator for where the analog stick is in HS space
 		this.huesatX = 0;
@@ -12,11 +17,10 @@ class Paint {
 
 		this.is_bright_set = false;
 		this.is_sat_set = false;
-		this.gradient_hues = [];
-		this.are_gradient_hues_selected = false;
+		this.custom_palette_hues = [];
+		this.are_custom_palette_hues_selected = false;
 
 		this.blendmode_selector = 0;
-		this.blendmode_selector_list = blendmode_list;
 	}
 
 	__cartesian_to_angle(x, y){
@@ -31,20 +35,20 @@ class Paint {
 	
 		let angle = __cartesian_to_angle(x, y);
 	
-		if (this.gradient_hues.length > 0 && this.are_gradient_hues_selected){
+		if (this.custom_palette_hues.length > 0 && this.are_custom_palette_hues_selected){
 	
 			// if a custom gradient is selected
 	
-			if (this.gradient_hues.length == 1)
-				return this.gradient_hues[0];
+			if (this.custom_palette_hues.length == 1)
+				return this.custom_palette_hues[0];
 			else {
-				let gradient_hue_index1 = floor(angle/(360/this.gradient_hues.length));
-				let gradient_hue_index2 = (gradient_hue_index1+1) % this.gradient_hues.length;
+				let gradient_hue_index1 = floor(angle/(360/this.custom_palette_hues.length));
+				let gradient_hue_index2 = (gradient_hue_index1+1) % this.custom_palette_hues.length;
 	
 				colorMode(HSB);
-				let blend_color1 = color(gradient_hues[gradient_hue_index1], 100, 100);
-				let blend_color2 = color(gradient_hues[gradient_hue_index2], 100, 100);
-				let max_val_for_lerp = 360/this.gradient_hues.length;
+				let blend_color1 = color(custom_palette_hues[gradient_hue_index1], 100, 100);
+				let blend_color2 = color(custom_palette_hues[gradient_hue_index2], 100, 100);
+				let max_val_for_lerp = 360/this.custom_palette_hues.length;
 				let lerp_ret = lerpColor(blend_color1, blend_color2, (angle % max_val_for_lerp)/max_val_for_lerp);
 				return hue(lerp_ret);
 			}
@@ -67,11 +71,11 @@ class Paint {
 		}
 	}
 
-	update_HueX(val){
+	update_HSX(val){
 		this.huesatX = val;
 		this.__update_HS();
 	}
-	update_HueY(val){
+	update_HSY(val){
 		this.huesatY = val;
 		this.__update_HS();
 	}
@@ -94,22 +98,26 @@ class Paint {
 		}
 	}
 
-	cycle_blendmodes(canvas){
+	set_blendmode(canvas){
+		canvas.blendMode(this.blendmode_selector_list[this.blendmode_selector]);
+	}
+
+	cycle_blendmode(canvas){
 		this.blendmode_selector = (this.blendmode_selector+1) % this.blendmode_selector_list.length;
 		canvas.blendMode(this.blendmode_selector_list[this.blendmode_selector]);
 	}
 
 	add_current_hue_to_custom_palette(){
-		if (this.gradient_hues.length < 4 && !this.are_gradient_hues_selected){
-			this.gradient_hues.push(this.my_hue);
+		if (this.custom_palette_hues.length < 4 && !this.are_custom_palette_hues_selected){
+			this.custom_palette_hues.push(this.my_hue);
 		}
 	}
 
-	toggle_gradient_palette(){
-		if (this.gradient_hues.length > 0){
-			this.are_gradient_hues_selected = !this.are_gradient_hues_selected;
-			if (!this.are_gradient_hues_selected){
-				this.gradient_hues = [];
+	toggle_custom_palette(){
+		if (this.custom_palette_hues.length > 0){
+			this.are_custom_palette_hues_selected = !this.are_custom_palette_hues_selected;
+			if (!this.are_custom_palette_hues_selected){
+				this.custom_palette_hues = [];
 			}
 		}
 	}
