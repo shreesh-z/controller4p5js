@@ -469,7 +469,9 @@ function controller_event_handler() {
 							if ((posX <= 0 && val > 0) || (posX >= (width) && val < 0) || (posX > 0 && posX < (width))) {
 								console.log("LSX: "+val);	
 								// velX = moveSpeed * val * (60/frameRate());
-								velX = val;
+								if (abs(val) > 0.1){
+									velX = val;
+								}
 								posX += moveSpeed * val * (60/frameRate());
 							}
 							if (debug_mode)
@@ -480,7 +482,9 @@ function controller_event_handler() {
 						if (abs(val) > deadzone) {
 							if ((posY <= 0 && val > 0) || (posY >= (height) && val < 0) || (posY > 0 && posY < (height))) {
 								console.log("LSY: "+val);
-								velY = val;
+								if (abs(val) > 0.1){
+									velY = val;
+								}
 								posY += moveSpeed * val * (60/frameRate());
 							}
 							if (debug_mode)
@@ -659,7 +663,7 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["Start"]:
 						if (buttonPressed(val, btn)) {
-							saveCanvas();
+							saveCanvas(main_sketch);
 
 							console.log("Downloaded sketch");
 
