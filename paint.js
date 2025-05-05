@@ -23,17 +23,9 @@ class Paint {
 		this.blendmode_selector = 0;
 	}
 
-	__cartesian_to_angle(x, y){
-		let angle = (Math.atan2(y, x) * 180) / Math.PI;
-		if (angle < 0) {
-			angle = 360 + angle; // angle is in degrees, belonging to [0,360] cyclic
-		}
-		return angle;
-	}
-
-	__cartesian_to_hue(x, y) {
+	cartesian_to_hue(x, y) {
 	
-		let angle = __cartesian_to_angle(x, y);
+		let angle = cartesian_to_angle(x, y);
 	
 		if (this.custom_palette_hues.length > 0 && this.are_custom_palette_hues_selected){
 	
@@ -46,8 +38,8 @@ class Paint {
 				let gradient_hue_index2 = (gradient_hue_index1+1) % this.custom_palette_hues.length;
 	
 				colorMode(HSB);
-				let blend_color1 = color(custom_palette_hues[gradient_hue_index1], 100, 100);
-				let blend_color2 = color(custom_palette_hues[gradient_hue_index2], 100, 100);
+				let blend_color1 = color(this.custom_palette_hues[gradient_hue_index1], 100, 100);
+				let blend_color2 = color(this.custom_palette_hues[gradient_hue_index2], 100, 100);
 				let max_val_for_lerp = 360/this.custom_palette_hues.length;
 				let lerp_ret = lerpColor(blend_color1, blend_color2, (angle % max_val_for_lerp)/max_val_for_lerp);
 				return hue(lerp_ret);
@@ -59,9 +51,9 @@ class Paint {
 	}
 
 	__update_HS(){
-		this.my_hue = this.__cartesian_to_hue(this.huesatX, this.huesatY);
+		this.my_hue = this.cartesian_to_hue(this.huesatX, this.huesatY);
 
-		if (!this.is_saturation_set){
+		if (!this.is_sat_set){
 			let new_sat = Math.sqrt((this.huesatX*this.huesatX + this.huesatY*this.huesatY));
 			if (new_sat > 0.9){
 				this.my_sat = 100;

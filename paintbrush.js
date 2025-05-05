@@ -1,8 +1,5 @@
-// import {Brush} from "brush.js";
-// import {Paint} from "paint.js";
-
-import("./brush.js");
-import("./paint.js");
+// import "./paint.js"
+// import "./brush.js"
 
 class PaintBrush {
 	constructor(paint, brush){
@@ -16,7 +13,7 @@ class PaintBrush {
 	}
 
 	reset(){
-		this.brush_applied = false;
+		this.stroke_applied = false;
 		this.show_gradient_on_cursor = false;
 	}
 
@@ -24,32 +21,40 @@ class PaintBrush {
 		this.show_gradient_on_cursor = !this.show_gradient_on_cursor;
 	}
 
-	show_current_paintbrush(canvas){
+	show_current_paintbrush(){
 		// to only show the paintbrush, not to commit to it on main_sketch
 
 		if (this.show_gradient_on_cursor){
 			this.__draw_cursor();
 		}
 
-		canvas.colorMode(HSB);
-		canvas.fill(color(my_hue, my_sat, my_bright));
+		colorMode(HSB);
+		fill(color(this.paint.my_hue, this.paint.my_sat, this.paint.my_bright));
 
-		let cursor_size_temp = this.brush.brush_size > 0 ?
+		let cursor_size_temp;
+		
+		if (this.show_gradient_on_cursor){
+			cursor_size_temp = this.brush.brush_size > this.min_cursor_size ?
 								this.brush.brush_size :
 								(this.brush.max_brush_size-this.brush.min_brush_size)/2;
+		} else {
+			cursor_size_temp = this.brush.brush_size > 0 ?
+								this.brush.brush_size :
+								(this.brush.max_brush_size-this.brush.min_brush_size)/2;
+		}
 		
 		if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'circle'){
-			canvas.circle(this.brush.posX, this.brush.posY, cursor_size_temp);
+			circle(this.brush.posX, this.brush.posY, cursor_size_temp);
 		} else if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'ellipse') {
-			canvas.push();
-			canvas.translate(this.brush.posX, this.brush.posY);
-			canvas.rotate(cartesian_to_angle(this.brush.velX, this.brush.velY));
-			canvas.ellipse(0, 0, cursor_size_temp, cursor_size_temp/2);
-			canvas.pop();
+			push();
+			translate(this.brush.posX, this.brush.posY);
+			rotate(cartesian_to_angle(this.brush.velX, this.brush.velY));
+			ellipse(0, 0, cursor_size_temp, cursor_size_temp/2);
+			pop();
 		}
 	}
 
-	draw_on_canvas(canvas, val, is_button){
+	draw_on_canvas(layer_manager, val, is_button){
 		
 		this.brush.update_brush_size(val, is_button);
 	
@@ -58,25 +63,38 @@ class PaintBrush {
 	
 		if(val != -1 && val != 0){
 	
-			if (this.brush_applied == false){
+			if (this.stroke_applied == false) {
 				// brush is being applied for the first time
-				// TODO fix global variable access
-				// if (undo_checkpoint_pressed == false){
-				// }
 				save_for_undo();
-				this.brush_applied = true; 
+				undo_redo_selector = false;
+				this.stroke_applied = true; 
 			}
 
-			this.brush.draw_on_canvas(canvas);
+			canvas.noStroke();
+			colorMode(HSB); //, 360, 100, 100, 100);
+			canvas.fill(color(this.paint.my_hue, this.paint.my_sat, this.paint.my_bright));
+			
+			if (this.brush.brush_shapes[this.brush.brush_shape_index] == 'circle'){
+				canvas.circle(this.brush.posX, this.brush.posY, this.brush.brush_size);
+			}
+			else if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'ellipse'){
+				canvas.push();
+				canvas.translate(this.brush.posX, this.brush.posY);
+				angleMode(DEGREES);
+				canvas.rotate(cartesian_to_angle(this.brush.velX, this.brush.velY));
+				canvas.ellipse(0, 0, this.brush.brush_size, this.brush.brush_size/2);
+				canvas.pop();
+			}
 			
 		} else {
-			if (this.brush_applied == true){
-				this.brush_applied = false;
+			if (this.stroke_applied == true){
+				this.stroke_applied = false;
 			}
 		}
 	}
 	
-	__draw_cursor(canvas){
+	__draw_cursor(){
+		colorMode(HSB);
 		for(var x = this.brush.posX-this.max_cursor_size; x < this.brush.posX+this.max_cursor_size; x++){
 			if (x < 0 || x > width)
 				continue;
@@ -90,8 +108,8 @@ class PaintBrush {
 
 				if ( rad > this.min_cursor_size && rad <= this.max_cursor_size ){
 					
-					let cursor_hue = this.paint.__cartesian_to_hue(xstep, ystep);
-					let cursor_angle = this.paint.__cartesian_to_angle(xstep, ystep);
+					let cursor_hue = this.paint.cartesian_to_hue(xstep, ystep);
+					let cursor_angle = cartesian_to_angle(xstep, ystep);
 					let cursor_sat = (rad/this.max_cursor_size)*100;
 					let cursor_bright = 100;
 					
@@ -100,12 +118,12 @@ class PaintBrush {
 					// to be able to add current hue being pointed to;
 					// so it shows up highlighted
 					let custom_palette_hues_extended;
-					if (!custom_palette_hues_selected)
+					if (!this.paint.are_custom_palette_hues_selected)
 						custom_palette_hues_extended = [...this.paint.custom_palette_hues];
 					else custom_palette_hues_extended = [];
 	
 					if (this.paint.my_sat > 50)
-						custom_palette_hues_extended.push(this.paint.__cartesian_to_angle(this.paint.huesatX, this.paint.huesatY));
+						custom_palette_hues_extended.push(cartesian_to_angle(this.paint.huesatX, this.paint.huesatY));
 	
 					if (custom_palette_hues_extended.length > 0){
 						for (var i = 0; i < custom_palette_hues_extended.length; i++){
@@ -125,8 +143,8 @@ class PaintBrush {
 							cursor_bright = 50;
 					}
 					
-					canvas.fill(color(cursor_hue, cursor_sat, cursor_bright));
-					canvas.circle(x,y,2);
+					fill(color(cursor_hue, cursor_sat, cursor_bright));
+					circle(x,y,2);
 				}
 			}
 		}

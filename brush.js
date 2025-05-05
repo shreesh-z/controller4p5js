@@ -17,6 +17,9 @@ class Brush {
 		this.brush_size = 5;
 		this.min_brush_size = 5;
 		this.max_brush_size = 40;
+		this.max_brush_size_first_step = 40;
+		this.max_brush_size_multiplier = 1;
+		this.max_brush_size_max_steps = 4;
 		this.brush_shape_index = 0;
 		this.is_brush_size_set = false;
 	}
@@ -46,29 +49,18 @@ class Brush {
 		}		
 	}
 
+	cycle_max_brush_size(){
+		this.max_brush_size_multiplier++;
+		if (this.max_brush_size_multiplier > this.max_brush_size_max_steps)
+			this.max_brush_size_multiplier = 1;
+		this.max_brush_size = this.max_brush_size_multiplier * this.max_brush_size_first_step;
+	}
+
 	cycle_brush_shape(){
 		this.brush_shape_index = (this.brush_shape_index + 1) % this.brush_shapes.length;
 	}
 
 	toggle_brush_size_lock(){
 		this.is_brush_size_set = !this.is_brush_size_set
-	}
-
-	draw_on_canvas(canvas){
-		canvas.noStroke();
-		canvas.colorMode(HSB, 360, 100, 100, 100);
-		canvas.fill(color(this.my_hue, this.my_sat, this.my_bright));
-		if (this.brush_shapes[this.brush_shape_index] == 'circle'){
-			canvas.circle(this.posX, this.posY, this.brush_size);
-		}
-		else if(this.brush_shapes[this.brush_shape_index] == 'ellipse'){
-			canvas.push();
-			canvas.translate(this.posX, this.posY);
-			angleMode(DEGREES);
-			// console.log(cartesian_to_angle(this.velX, this.velY));
-			canvas.rotate(cartesian_to_angle(this.velX, this.velY));
-			canvas.ellipse(0, 0, this.brush_size, this.brush_size/2);
-			canvas.pop();
-		}
 	}
 };
