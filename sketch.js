@@ -1,29 +1,23 @@
-// import "libraries/p5.min.js"
-// import "libraries/p5.sound.min.js"
-// import {PaintBrush} from "./paintbrush.js";
-// import {Paint} from "./paint.js";
-// import {Brush} from "./brush.js";
-
 /**
  * Instructions: Attach an Xbox controller and press the play button on the website
  * 
  * Key mapping:
  * 
  * Left stick (LSX,LSY) : Moves the cursor
- * Right stick (RSX,RSY): Changes color (in my_hue & saturation color space)
+ * Right stick (RSX,RSY): Changes color (in hue & saturation color space)
  * Right trigger (RT): Brush (size varies acc. to how much you press the trigger)
  * Left trigger (LT): Changes brightness
  * Right shoulder (RB): Locks (& unlocks) a set brush size
  * Left shoulder (LB): Locks (& unlocks) a set brightness
  * LS button (LSB): Locks (& unlocks) a set saturation
- * RS button (RSB): resets color to white
- * A button : toggles color randomization (adds a random spread to the hue in degrees)
- * B button : toggles brush size randomization (adds a random spread to the size)
+ * RS button (RSB): cycles max brush sizes
+ * A button : Unmapped
+ * B button : Undo / Redo
  * X button : change blendmode to among
  * 		1. source-over (default) : (overwrites canvas with each brush stroke)
  * 		2. lighten : keeps the lightest color value while overwriting
  * 		3. soft-light: dark values in the source get darker and light values get lighter
- * Y button : currently unmapped
+ * Y button : Sets background color to currently chosen HSV color
  * Dup button : choose (up to 4) colors on the wheel to create a custom gradient
  * 		> 1 color mode allows you to play with the chroma of only that one color
  * 		> 2 color mode allows to explore a cyclic RGB gradient of those two colors
@@ -31,10 +25,10 @@
  * 		> button tops out at 4. Press Dleft to move to selected gradient space
  * Dleft button : End color selection. Press again to go back to default gradient space
  * Ddown button : Overlay current gradient on cursor (press & hold)
- * Dleft button : currently unmapped
+ * Dleft button : Cycle between brush types (currently circle & ellipse)
  * Start button : Save current sketch (downloads it as a png)
  * Menu button : Cannot be assigned (due to interference with windows game mode)
- * Select button : Clear canvas (have to press it 3 times)
+ * Select button : Clear canvas (have to press it 4 times)
  */
 
 /**
@@ -48,15 +42,17 @@
  * 
  * 		-- issue will be fixed if JS is dropped. Can be done (?)
  * 		I like p5.java, but p5.cpp may be best for performance
+ * 		-- Partially fixed by scaling movement speed based on framerate
  */
 
 /**
  * Requested feature list:
- * 1.	A button to select the current H,S value on the color stick
- * 2.	Direct eraser button
+ * 1.	A button to select the current H,S value on the color stick - no
+ * 2.	Direct eraser button - no
  * 3.	Keymapping mode
- * 4.	Framerate checker (debug mode addition) **HALF DONE**
+ * 4.	Framerate checker (debug mode addition) *done*
  * 5.	Undo mode (requires many many hours to implement; maybe) **IMPORTANT**
+ * 		-- half done, layer manager in works
  * 6. 	Beginner / Tutorial mode
  * 7.	Multi-mode environment
  */
