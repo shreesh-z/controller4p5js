@@ -60,6 +60,11 @@ class PaintBrush {
 	
 		if (this.show_gradient_on_cursor == true)
 			return;
+
+		if (is_button){
+			// remap value to lie in [-1,1] instead of [0,1]
+			val = 2*val.value - 1;
+		}
 	
 		if(val != -1 && val != 0){
 	
