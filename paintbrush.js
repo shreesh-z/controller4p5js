@@ -72,7 +72,7 @@ class PaintBrush {
 				// brush is being applied for the first time
 				layer_manager.save_for_undo();
 				layer_manager.undo_redo_selector = false;
-				this.stroke_applied = true; 
+				this.stroke_applied = true;
 			}
 
 			let canvas = layer_manager.get_main_sketch();

@@ -259,7 +259,9 @@ function controller_event_handler() {
 					case xbox_keymap["B"]:
 						if (buttonPressed(val, btn)) {
 							
-							layer_manager.toggle_undo_pressed();
+							// only allow undo/redo if stroke has been lifted
+							if (paintbrush.stroke_applied == false)
+								layer_manager.toggle_undo_pressed();
 							
 							if(debug_mode){
 								console.log("Pressed B");
