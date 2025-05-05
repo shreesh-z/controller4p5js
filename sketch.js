@@ -229,7 +229,13 @@ function reset_all(){
 	erase_counter = 0;
 	colorMode(RGB);
 	main_sketch.clear();
-	save_for_undo();
+	redo_sketch.clear();
+	undo_sketch.clear();
+	// save_for_undo(); // TODO implement this
+	saved_for_undo = false;
+	undo_pressed = false;
+	redo_pressed = false;
+	undo_redo_selector = false;
 
 	paint.reset();
 	brush.reset();
@@ -474,7 +480,6 @@ function controller_event_handler() {
 					case xbox_keymap["RSB"]:
 						if (buttonPressed(val, btn)) {
 
-							
 							brush.cycle_max_brush_size();
 
 							if(debug_mode){
@@ -649,7 +654,7 @@ class Paint {
 	__update_HS(){
 		this.my_hue = this.cartesian_to_hue(this.huesatX, this.huesatY);
 
-		if (!this.is_saturation_set){
+		if (!this.is_sat_set){
 			let new_sat = Math.sqrt((this.huesatX*this.huesatX + this.huesatY*this.huesatY));
 			if (new_sat > 0.9){
 				this.my_sat = 100;
@@ -842,8 +847,6 @@ class PaintBrush {
 	
 					if (this.paint.my_sat > 50)
 						custom_palette_hues_extended.push(cartesian_to_angle(this.paint.huesatX, this.paint.huesatY));
-
-					console.log(cartesian_to_angle(this.paint.huesatX, this.paint.huesatY));
 	
 					if (custom_palette_hues_extended.length > 0){
 						for (var i = 0; i < custom_palette_hues_extended.length; i++){
