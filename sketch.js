@@ -67,6 +67,7 @@
 let enable_webGL = false;
 let controllers = []
 let debug_mode = false;
+let show_framerate = false;
 let deadzone = 0.08; // change according to your calibration
 
 let released = [];
@@ -159,11 +160,13 @@ function draw() {
 
 	paintbrush.show_current_paintbrush();
 
-	// colorMode(HSB);
-	// let fps = int(frameRate());
-	// fill(color(0,0,100));
-	// textSize(20);
-	// text(fps, 50, 50);
+	if (show_framerate){
+		colorMode(HSB);
+		let fps = int(frameRate());
+		fill(color(0,0,100));
+		textSize(20);
+		text(fps, 50, 50);
+	}
 }
 
 function reset_all(){
