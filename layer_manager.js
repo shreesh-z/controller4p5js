@@ -81,16 +81,20 @@ class LayerManager {
 		colorMode(HSB);
 		this.save_sketch.background(color(this.bg_hue, this.bg_sat, this.bg_bright));	
 		this.save_sketch.image(this.main_sketch, 0, 0);
-		this.saveCanvas(this.save_sketch);
+		saveCanvas(this.save_sketch);
 	}
 
-	set_bg(bg_hue, bg_sat, bg_bright){
-		this.bg_hue = bg_hue;
-		this.bg_sat = bg_sat;
-		this.bg_bright = bg_bright;
+	set_bg(paint){
+		this.bg_hue = paint.my_hue;
+		this.bg_sat = paint.my_sat;
+		this.bg_bright = paint.my_bright;
 	}
 
 	get_main_sketch(){
 		return this.main_sketch;
+	}
+
+	get_bg_color(){
+		return color(this.bg_hue, this.bg_sat, this.bg_bright);
 	}
 };

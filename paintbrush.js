@@ -65,10 +65,12 @@ class PaintBrush {
 	
 			if (this.stroke_applied == false) {
 				// brush is being applied for the first time
-				save_for_undo();
-				undo_redo_selector = false;
+				layer_manager.save_for_undo();
+				layer_manager.undo_redo_selector = false;
 				this.stroke_applied = true; 
 			}
+
+			let canvas = layer_manager.get_main_sketch();
 
 			canvas.noStroke();
 			colorMode(HSB); //, 360, 100, 100, 100);

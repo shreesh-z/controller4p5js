@@ -90,11 +90,13 @@ class Paint {
 		}
 	}
 
-	set_blendmode(canvas){
+	set_blendmode(layer_manager){
+		let canvas = layer_manager.get_main_sketch()
 		canvas.blendMode(this.blendmode_selector_list[this.blendmode_selector]);
 	}
 
-	cycle_blendmode(canvas){
+	cycle_blendmode(layer_manager){
+		let canvas = layer_manager.get_main_sketch()
 		this.blendmode_selector = (this.blendmode_selector+1) % this.blendmode_selector_list.length;
 		canvas.blendMode(this.blendmode_selector_list[this.blendmode_selector]);
 	}

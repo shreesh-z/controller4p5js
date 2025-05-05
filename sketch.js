@@ -72,23 +72,7 @@ let deadzone = 0.08; // change according to your calibration
 let released = [];
 let pressed = [];
 
-let screen_renderer; // the final canvas on the screen
-let main_sketch;   // for the actual drawing
-let undo_sketch;   // to enable undos
-let redo_sketch;   // to save main sketch before the undo
-let save_sketch;   // sketch onto which image is saved
-let saved_for_undo = false;
-let undo_pressed = false;
-let redo_pressed = false;
-// to flip between the undo/redo button's two states
-let undo_redo_selector = false;
-
-// to define the background color
-let bg_hue = 0;
-let bg_sat = 0;
-let bg_bright = 0;
-
-let paint, brush, paintbrush;
+let paint, brush, paintbrush, layer_manager;
 
 let xdim = 1920;
 let ydim = 1080;
@@ -125,10 +109,6 @@ let xbox_keymap = {
 };
 
 function setup() {
-	main_sketch = createGraphics(xdim,ydim);
-	undo_sketch = createGraphics(xdim, ydim);
-	redo_sketch = createGraphics(xdim, ydim);
-	save_sketch = createGraphics(xdim, ydim);
 
 	if (enable_webGL)
 		screen_renderer = createCanvas(xdim, ydim, WEBGL);
@@ -137,7 +117,7 @@ function setup() {
 	
 	frameRate(60);
 	colorMode(HSB);
-	background(bg_hue, bg_sat, bg_bright);
+
 	noStroke();
 	window.addEventListener("gamepadconnected", function(e) {
 		gamepadHandler(e, true);
@@ -154,12 +134,14 @@ function setup() {
 		released[i] = true;
 		pressed[i] = false;
 	}
-	
+
+	layer_manager = new LayerManager(xdim, ydim);
 	paint = new Paint([BLEND, LIGHTEST, SOFT_LIGHT]);
 	brush = new Brush(xdim, ydim);
 	paintbrush = new PaintBrush(paint, brush);
 
-	paint.set_blendmode(main_sketch);
+	paint.set_blendmode(layer_manager);
+	background(layer_manager.get_bg_color());
 
 	// fullscreen(true);
 }
@@ -172,8 +154,8 @@ function draw() {
 	controller_event_handler();
 
 	colorMode(HSB);
-	background(color(bg_hue, bg_sat, bg_bright));	
-	image(main_sketch, 0, 0);
+	background(layer_manager.get_bg_color());
+	image(layer_manager.get_main_sketch(), 0, 0);
 
 	paintbrush.show_current_paintbrush();
 
@@ -184,63 +166,14 @@ function draw() {
 	// text(fps, 50, 50);
 }
 
-function save_for_undo(){
-	saved_for_undo = true;
-	redo_pressed = false;
-	undo_pressed = false;
-	undo_sketch.image(main_sketch, 0, 0);
-}
-
-function do_undo(){
-	if (saved_for_undo == false){
-		// cannot undo if not saved for it beforehand
-		// also cannot undo more than once
-		return;
-	}
-
-	saved_for_undo = false;
-	if (redo_pressed == true)
-		redo_pressed = false;
-
-	// save main sketch to reload for later
-	redo_sketch.clear();
-	redo_sketch.image(main_sketch, 0, 0);
-
-	main_sketch.clear();
-	main_sketch.image(undo_sketch, 0, 0);
-
-	undo_pressed = true;
-}
-
-function do_redo(){
-	if (redo_pressed == false && undo_pressed == true){
-		save_for_undo();
-		main_sketch.clear();
-		main_sketch.image(redo_sketch, 0, 0);
-		redo_pressed = true;
-	}
-}
-
 function reset_all(){
 	erase_counter = 0;
-	main_sketch.clear();
-	redo_sketch.clear();
-	undo_sketch.clear();
-	// save_for_undo(); // TODO implement this
-	saved_for_undo = false;
-	undo_pressed = false;
-	redo_pressed = false;
-	undo_redo_selector = false;
-
+	
+	layer_manager.reset();
 	paint.reset();
 	brush.reset();
 	paintbrush.reset();
-	paint.set_blendmode(main_sketch);
-
-	undo_redo_selector = false;
-	bg_hue = 0;
-	bg_sat = 0;
-	bg_bright = 0;
+	paint.set_blendmode(layer_manager);
 
 	console.log("Canvas erased. All modes cleared to default");
 }
@@ -297,7 +230,7 @@ function controller_event_handler() {
 						break;
 					case xbox_axismap["RT"]:
 						if (controller.axes && controller.axes.length == 6)
-							paintbrush.draw_on_canvas(main_sketch, val, false);
+							paintbrush.draw_on_canvas(layer_manager, val, false);
 						break;
 					case xbox_axismap["LT"]:
 						if (controller.axes && controller.axes.length == 6)
@@ -315,9 +248,9 @@ function controller_event_handler() {
 				switch(btn){
 					case xbox_keymap["Y"]:
 						if (buttonPressed(val, btn)) {
-							bg_hue = paint.my_hue;
-							bg_sat = paint.my_sat;
-							bg_bright = paint.my_bright;
+
+							layer_manager.set_bg(paint);
+
 							if(debug_mode){
 								console.log("Pressed Y");
 							}
@@ -325,12 +258,8 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["B"]:
 						if (buttonPressed(val, btn)) {
-							if (undo_redo_selector == false)
-								do_undo();
-							else
-								do_redo();
-
-							undo_redo_selector = !undo_redo_selector;
+							
+							layer_manager.toggle_undo_pressed();
 							
 							if(debug_mode){
 								console.log("Pressed B");
@@ -340,7 +269,7 @@ function controller_event_handler() {
 					case xbox_keymap["X"]:
 						if (buttonPressed(val, btn)) {
 							
-							paint.cycle_blendmode(main_sketch);
+							paint.cycle_blendmode(layer_manager);
 							
 							if(debug_mode){
 								console.log("Pressed X");
@@ -349,6 +278,9 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["A"]:
 						if (buttonPressed(val, btn)){
+
+							// TODO map layers to this
+
 							if(debug_mode){
 								console.log("Pressed A");
 							}
@@ -419,11 +351,7 @@ function controller_event_handler() {
 					case xbox_keymap["Start"]:
 						if (buttonPressed(val, btn)) {
 							
-							save_sketch.clear();
-							colorMode(HSB);
-							save_sketch.background(color(bg_hue, bg_sat, bg_bright));	
-							save_sketch.image(main_sketch, 0, 0);
-							saveCanvas(save_sketch);
+							layer_manager.download_sketch();
 
 							console.log("Downloaded sketch");
 
@@ -456,7 +384,7 @@ function controller_event_handler() {
 						break;
 					case xbox_keymap["RT"]:
 						if (controller.axes && controller.axes.length == 4)
-							paintbrush.draw_on_canvas(main_sketch, val, true);
+							paintbrush.draw_on_canvas(layer_manager, val, true);
 						break;
 					case xbox_keymap["LT"]:
 						if (controller.axes && controller.axes.length == 4)
@@ -526,345 +454,3 @@ function cartesian_to_angle(x, y){
 	}
 	return angle;
 };
-
-// class Brush {
-
-// 	constructor(sketch_width, sketch_height){
-// 		this.my_width = sketch_width;
-// 		this.my_height = sketch_height;
-// 		this.brush_shapes = ['circle', 'ellipse'];
-// 		this.move_speed = 7;
-
-// 		this.reset();
-// 	};
-
-// 	reset(){
-// 		this.posX = this.my_width/2;
-// 		this.posY = this.my_height/2;
-// 		this.velX = 0;
-// 		this.velY = 0;
-// 		this.brush_size = 5;
-// 		this.min_brush_size = 5;
-// 		this.max_brush_size = 40;
-// 		this.max_brush_size_first_step = 40;
-// 		this.max_brush_size_multiplier = 1;
-// 		this.max_brush_size_max_steps = 4;
-// 		this.brush_shape_index = 0;
-// 		this.is_brush_size_set = false;
-// 	}
-
-// 	moveX(val){
-// 		if ((this.posX <= 0 && val > 0) || (this.posX >= this.my_width && val < 0) || (this.posX > 0 && this.posX < this.my_width)) {
-// 			this.velX = this.move_speed * val * (60/frameRate());
-// 			this.posX += this.velX;
-// 		}
-// 	}
-
-// 	moveY(val){
-// 		if ((this.posY <= 0 && val > 0) || (this.posY >= this.my_height && val < 0) || (this.posY > 0 && this.posY < this.my_height)) {
-// 			this.velY = this.move_speed * val * (60/frameRate());
-// 			this.posY += this.velY;
-// 		}
-// 	}
-
-// 	update_brush_size(val, is_button){
-// 		if (is_button){
-// 			// remap value to lie in [-1,1] instead of [0,1]
-// 			val = 2*val.value - 1;
-// 		}
-
-// 		if(!this.is_brush_size_set){
-// 			this.brush_size = this.min_brush_size + ((val+1)/2)*this.max_brush_size;
-// 		}		
-// 	}
-
-// 	cycle_max_brush_size(){
-// 		this.max_brush_size_multiplier++;
-// 		if (this.max_brush_size_multiplier > this.max_brush_size_max_steps)
-// 			this.max_brush_size_multiplier = 1;
-// 		this.max_brush_size = this.max_brush_size_multiplier * this.max_brush_size_first_step;
-// 	}
-
-// 	cycle_brush_shape(){
-// 		this.brush_shape_index = (this.brush_shape_index + 1) % this.brush_shapes.length;
-// 	}
-
-// 	toggle_brush_size_lock(){
-// 		this.is_brush_size_set = !this.is_brush_size_set
-// 	}
-// };
-
-// class Paint {
-// 	// pass the list of blendmodes;
-// 	// first element is default
-// 	constructor(blendmode_list){
-// 		this.reset();
-// 		this.blendmode_selector_list = blendmode_list;
-// 	}
-
-// 	reset(){
-// 		this.my_hue = 0;
-// 		this.my_sat = 0;
-// 		this.my_bright = 100;
-
-// 		// indicator for where the analog stick is in HS space
-// 		this.huesatX = 0;
-// 		this.huesatY = 0;
-
-// 		this.is_bright_set = false;
-// 		this.is_sat_set = false;
-// 		this.custom_palette_hues = [];
-// 		this.are_custom_palette_hues_selected = false;
-
-// 		this.blendmode_selector = 0;
-// 	}
-
-// 	cartesian_to_hue(x, y) {
-	
-// 		let angle = cartesian_to_angle(x, y);
-	
-// 		if (this.custom_palette_hues.length > 0 && this.are_custom_palette_hues_selected){
-	
-// 			// if a custom gradient is selected
-	
-// 			if (this.custom_palette_hues.length == 1)
-// 				return this.custom_palette_hues[0];
-// 			else {
-// 				let gradient_hue_index1 = floor(angle/(360/this.custom_palette_hues.length));
-// 				let gradient_hue_index2 = (gradient_hue_index1+1) % this.custom_palette_hues.length;
-	
-// 				colorMode(HSB);
-// 				let blend_color1 = color(this.custom_palette_hues[gradient_hue_index1], 100, 100);
-// 				let blend_color2 = color(this.custom_palette_hues[gradient_hue_index2], 100, 100);
-// 				let max_val_for_lerp = 360/this.custom_palette_hues.length;
-// 				let lerp_ret = lerpColor(blend_color1, blend_color2, (angle % max_val_for_lerp)/max_val_for_lerp);
-// 				return hue(lerp_ret);
-// 			}
-// 		}
-		
-// 		// angle in degrees is how my_hue is processed anyways by default
-// 		return angle;
-// 	}
-
-// 	__update_HS(){
-// 		this.my_hue = this.cartesian_to_hue(this.huesatX, this.huesatY);
-
-// 		if (!this.is_sat_set){
-// 			let new_sat = Math.sqrt((this.huesatX*this.huesatX + this.huesatY*this.huesatY));
-// 			if (new_sat > 0.9){
-// 				this.my_sat = 100;
-// 			} else {
-// 				this.my_sat = new_sat*100;
-// 			}
-// 		}
-// 	}
-
-// 	update_HSX(val){
-// 		this.huesatX = val;
-// 		this.__update_HS();
-// 	}
-// 	update_HSY(val){
-// 		this.huesatY = val;
-// 		this.__update_HS();
-// 	}
-
-// 	update_brightness(val, is_button){
-// 		if (is_button){
-// 			// remap value to lie in [-1,1] instead of [0,1]
-// 			val = 2*val.value - 1;
-// 		}
-
-// 		if (!this.is_bright_set){
-// 			if(val != 0){
-// 				if (val != -1){
-// 					this.my_bright = 50*(1-val);
-// 				}
-// 				else{
-// 					this.my_bright = 100;
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	set_blendmode(canvas){
-// 		canvas.blendMode(this.blendmode_selector_list[this.blendmode_selector]);
-// 	}
-
-// 	cycle_blendmode(canvas){
-// 		this.blendmode_selector = (this.blendmode_selector+1) % this.blendmode_selector_list.length;
-// 		canvas.blendMode(this.blendmode_selector_list[this.blendmode_selector]);
-// 	}
-
-// 	add_current_hue_to_custom_palette(){
-// 		if (this.custom_palette_hues.length < 4 && !this.are_custom_palette_hues_selected){
-// 			this.custom_palette_hues.push(this.my_hue);
-// 		}
-// 	}
-
-// 	toggle_custom_palette(){
-// 		if (this.custom_palette_hues.length > 0){
-// 			this.are_custom_palette_hues_selected = !this.are_custom_palette_hues_selected;
-// 			if (!this.are_custom_palette_hues_selected){
-// 				this.custom_palette_hues = [];
-// 			}
-// 		}
-// 	}
-
-// 	toggle_set_saturation(){
-// 		this.is_sat_set = !this.is_sat_set;
-// 	}
-
-// 	toggle_set_brightness(){
-// 		this.is_bright_set = !this.is_bright_set;
-// 	}
-// };
-
-// class PaintBrush {
-// 	constructor(paint, brush){
-// 		this.paint = paint;
-// 		this.brush = brush;
-
-// 		this.min_cursor_size = 10;
-// 		this.max_cursor_size = 40;
-
-// 		this.reset();
-// 	}
-
-// 	reset(){
-// 		this.stroke_applied = false;
-// 		this.show_gradient_on_cursor = false;
-// 	}
-
-// 	toggle_cursor_display(){
-// 		this.show_gradient_on_cursor = !this.show_gradient_on_cursor;
-// 	}
-
-// 	show_current_paintbrush(){
-// 		// to only show the paintbrush, not to commit to it on main_sketch
-
-// 		if (this.show_gradient_on_cursor){
-// 			this.__draw_cursor();
-// 		}
-
-// 		colorMode(HSB);
-// 		fill(color(this.paint.my_hue, this.paint.my_sat, this.paint.my_bright));
-
-// 		let cursor_size_temp;
-		
-// 		if (this.show_gradient_on_cursor){
-// 			cursor_size_temp = this.brush.brush_size > this.min_cursor_size ?
-// 								this.brush.brush_size :
-// 								(this.brush.max_brush_size-this.brush.min_brush_size)/2;
-// 		} else {
-// 			cursor_size_temp = this.brush.brush_size > 0 ?
-// 								this.brush.brush_size :
-// 								(this.brush.max_brush_size-this.brush.min_brush_size)/2;
-// 		}
-		
-// 		if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'circle'){
-// 			circle(this.brush.posX, this.brush.posY, cursor_size_temp);
-// 		} else if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'ellipse') {
-// 			push();
-// 			translate(this.brush.posX, this.brush.posY);
-// 			rotate(cartesian_to_angle(this.brush.velX, this.brush.velY));
-// 			ellipse(0, 0, cursor_size_temp, cursor_size_temp/2);
-// 			pop();
-// 		}
-// 	}
-
-// 	draw_on_canvas(layer_manager, val, is_button){
-		
-// 		this.brush.update_brush_size(val, is_button);
-	
-// 		if (this.show_gradient_on_cursor == true)
-// 			return;
-	
-// 		if(val != -1 && val != 0){
-	
-// 			if (this.stroke_applied == false) {
-// 				// brush is being applied for the first time
-// 				save_for_undo();
-// 				undo_redo_selector = false;
-// 				this.stroke_applied = true; 
-// 			}
-
-// 			canvas.noStroke();
-// 			colorMode(HSB); //, 360, 100, 100, 100);
-// 			canvas.fill(color(this.paint.my_hue, this.paint.my_sat, this.paint.my_bright));
-			
-// 			if (this.brush.brush_shapes[this.brush.brush_shape_index] == 'circle'){
-// 				canvas.circle(this.brush.posX, this.brush.posY, this.brush.brush_size);
-// 			}
-// 			else if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'ellipse'){
-// 				canvas.push();
-// 				canvas.translate(this.brush.posX, this.brush.posY);
-// 				angleMode(DEGREES);
-// 				canvas.rotate(cartesian_to_angle(this.brush.velX, this.brush.velY));
-// 				canvas.ellipse(0, 0, this.brush.brush_size, this.brush.brush_size/2);
-// 				canvas.pop();
-// 			}
-			
-// 		} else {
-// 			if (this.stroke_applied == true){
-// 				this.stroke_applied = false;
-// 			}
-// 		}
-// 	}
-	
-// 	__draw_cursor(){
-// 		colorMode(HSB);
-// 		for(var x = this.brush.posX-this.max_cursor_size; x < this.brush.posX+this.max_cursor_size; x++){
-// 			if (x < 0 || x > width)
-// 				continue;
-// 			for(var y = this.brush.posY-this.max_cursor_size; y < this.brush.posY+this.max_cursor_size; y++){
-// 				if (y < 0 || y > height)
-// 					continue;
-
-// 				let xstep = x - this.brush.posX;
-// 				let ystep = y - this.brush.posY;
-// 				let rad = Math.sqrt((xstep*xstep + ystep*ystep));
-
-// 				if ( rad > this.min_cursor_size && rad <= this.max_cursor_size ){
-					
-// 					let cursor_hue = this.paint.cartesian_to_hue(xstep, ystep);
-// 					let cursor_angle = cartesian_to_angle(xstep, ystep);
-// 					let cursor_sat = (rad/this.max_cursor_size)*100;
-// 					let cursor_bright = 100;
-					
-// 					let smallest_angle_diff = Infinity;
-					
-// 					// to be able to add current hue being pointed to;
-// 					// so it shows up highlighted
-// 					let custom_palette_hues_extended;
-// 					if (!this.paint.are_custom_palette_hues_selected)
-// 						custom_palette_hues_extended = [...this.paint.custom_palette_hues];
-// 					else custom_palette_hues_extended = [];
-	
-// 					if (this.paint.my_sat > 50)
-// 						custom_palette_hues_extended.push(cartesian_to_angle(this.paint.huesatX, this.paint.huesatY));
-	
-// 					if (custom_palette_hues_extended.length > 0){
-// 						for (var i = 0; i < custom_palette_hues_extended.length; i++){
-// 							let angle_diff;
-// 							angle_diff = custom_palette_hues_extended[i] - cursor_angle;
-							
-// 							if (angle_diff > 360)
-// 								angle_diff -= 360;
-// 							if (angle_diff < 0)
-// 								angle_diff += 360;
-	
-// 							if(abs(angle_diff) < smallest_angle_diff)
-// 								smallest_angle_diff = abs(angle_diff); 
-// 						}
-	
-// 						if(smallest_angle_diff > 10)
-// 							cursor_bright = 50;
-// 					}
-					
-// 					fill(color(cursor_hue, cursor_sat, cursor_bright));
-// 					circle(x,y,2);
-// 				}
-// 			}
-// 		}
-// 	}
-// };
