@@ -71,6 +71,7 @@ class PaintBrush {
 			if (this.stroke_applied == false) {
 				// brush is being applied for the first time
 				layer_manager.save_for_undo();
+				layer_manager.save_undo_layer();
 				layer_manager.undo_redo_selector = false;
 				this.stroke_applied = true;
 			}
