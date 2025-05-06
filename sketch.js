@@ -18,14 +18,22 @@
  * 		2. lighten : keeps the lightest color value while overwriting
  * 		3. soft-light: dark values in the source get darker and light values get lighter
  * Y button : Sets background color to currently chosen HSV color
- * Dup button : choose (up to 4) colors on the wheel to create a custom gradient
- * 		> 1 color mode allows you to play with the chroma of only that one color
- * 		> 2 color mode allows to explore a cyclic RGB gradient of those two colors
- * 		> same as above for 3 & 4 colors
- * 		> button tops out at 4. Press Dleft to move to selected gradient space
- * Dleft button : End color selection. Press again to go back to default gradient space
- * Ddown button : Overlay current gradient on cursor (press & hold)
- * Dleft button : Cycle between brush types (currently circle & ellipse)
+ * 
+ * In Color Palette Mode (cursor shows current brush type & color palette):
+	Dup button : choose (up to 4) colors on the wheel to create a custom gradient
+		> 1 color mode allows you to play with the chroma of only that one color
+		> 2 color mode allows to explore a cyclic RGB gradient of those two colors
+		> same as above for 3 & 4 colors
+		> button tops out at 4. Press Dleft to move to selected gradient space
+	Dright button : End color selection. Press again to go back to default gradient space
+	Ddown button : Overlay current gradient on cursor (press & hold)
+	Dleft button : Cycle between brush types (currently circle & ellipse)
+ * 
+ * In Layer Mode (cursor shows current layer):
+	Dup button : Go up one layer
+	Ddown button : Go down one layer
+	Dright button : Toggle transparency/opacity of layer
+	Dleft button : currently unmapped
  * Start button : Save current sketch (downloads it as a png)
  * Menu button : Cannot be assigned (due to interference with windows game mode)
  * Select button : Clear canvas (have to press it 4 times)
