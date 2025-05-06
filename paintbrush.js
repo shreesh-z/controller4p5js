@@ -18,6 +18,19 @@ class PaintBrush {
 		this.show_gradient_on_cursor = !this.show_gradient_on_cursor;
 	}
 
+	show_brush_on_hud(hud_image, x, y){
+		hud_image.colorMode(HSB);
+		hud_image.fill(color(this.paint.my_hue, this.paint.my_sat, this.paint.my_bright));
+
+		let brush_size_temp = 50;
+
+		if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'circle'){
+			hud_image.circle(x, y, brush_size_temp);
+		} else {
+			hud_image.ellipse(x, y, brush_size_temp, brush_size_temp/2);
+		}
+	}
+
 	show_current_paintbrush(){
 		// to only show the paintbrush, not to commit to it on main_sketch
 

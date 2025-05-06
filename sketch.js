@@ -197,13 +197,35 @@ function draw() {
 	// hud_image.colorMode(HSB);
 	hud_image.background(0,0,0);
 
+	// make bounding rect
 	hud_image.colorMode(HSB);
 	hud_image.strokeWeight(5);
 	hud_image.stroke(0,0,50);
 	hud_image.fill(0,0,0);
 	hud_image.rect(0, 0, xdim, hud_height);
 
+	hud_image.textAlign(CENTER, CENTER);
+
+	// draw brush type & color
+	hud_image.noStroke();
+	hud_image.fill(0,0,100);
+	hud_image.textSize(20);
+	hud_image.text("Brush", 50, 85);
+	paintbrush.show_brush_on_hud(hud_image, 50, 37);
+
+	let blendmode_text = paint.blendmode_selector_list[paint.blendmode_selector];
+	
+	// blend mode
+	hud_image.fill(0,0,100);
+	hud_image.textSize(18);
+	hud_image.text(blendmode_text, 150, 37);
+	hud_image.textSize(20);
+	hud_image.text("BlendMode", 150, 85);
+
 	image(hud_image, 0, ydim);
+
+	// textSize(20);
+	// text(int(mouseX)+" "+int(mouseY), brush.posX, brush.posY);
 }
 
 function reset_all(){
