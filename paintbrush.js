@@ -75,7 +75,7 @@ class PaintBrush {
 				this.stroke_applied = true;
 			}
 
-			let canvas = layer_manager.get_main_sketch();
+			let canvas = layer_manager.get_active_layer();
 
 			canvas.noStroke();
 			colorMode(HSB); //, 360, 100, 100, 100);

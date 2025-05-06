@@ -75,6 +75,8 @@ let pressed = [];
 
 let paint, brush, paintbrush, layer_manager;
 
+let layer_or_palette = false;
+
 let xdim = 1920;
 let ydim = 1080;
 
@@ -156,9 +158,19 @@ function draw() {
 
 	colorMode(HSB);
 	background(layer_manager.get_bg_color());
-	image(layer_manager.get_main_sketch(), 0, 0);
+	image(layer_manager.get_full_sketch(), 0, 0);
 
-	paintbrush.show_current_paintbrush();
+	if (layer_or_palette == false){
+		paintbrush.show_current_paintbrush();
+	} else {
+		textSize(20);
+		colorMode(HSB);
+		if (layer_manager.get_active_layer_transparency())
+			fill(color(0, 0, 50));
+		else fill(color(0, 0, 100));
+		
+		text(layer_manager.active_layer_index+1, brush.posX, brush.posY);
+	}
 
 	if (show_framerate){
 		colorMode(HSB);
@@ -284,7 +296,7 @@ function controller_event_handler() {
 					case xbox_keymap["A"]:
 						if (buttonPressed(val, btn)){
 
-							// TODO map layers to this
+							layer_or_palette = !layer_or_palette;
 
 							if(debug_mode){
 								console.log("Pressed A");
@@ -294,7 +306,10 @@ function controller_event_handler() {
 					case xbox_keymap["DUp"]:
 						if (buttonPressed(val, btn)){
 							
-							paint.add_current_hue_to_custom_palette();
+							if (layer_or_palette == false)
+								paint.add_current_hue_to_custom_palette();
+							else
+								layer_manager.go_up_one_layer();
 
 							if(debug_mode){
 								console.log("Pressed DUp");
@@ -304,7 +319,10 @@ function controller_event_handler() {
 					case xbox_keymap["DRight"]:
 						if (buttonPressed(val, btn)){
 							
-							paint.toggle_custom_palette();
+							if (layer_or_palette == false)
+								paint.toggle_custom_palette();
+							else
+								layer_manager.toggle_active_layer_transparency();
 
 							if(debug_mode){
 								console.log("Pressed DRight");
@@ -314,9 +332,12 @@ function controller_event_handler() {
 					case xbox_keymap["DDown"]:
 						if (buttonPressed(val, btn)){
 							
-							paintbrush.toggle_cursor_display();
-
-							console.log("Showing current color palette gradient on cursor");
+							if (layer_or_palette == false){
+								paintbrush.toggle_cursor_display();
+								console.log("Showing current color palette gradient on cursor");
+							} else {
+								layer_manager.go_down_one_layer();
+							}
 
 							if(debug_mode){
 								console.log("Pressed DDown");
@@ -326,7 +347,8 @@ function controller_event_handler() {
 					case xbox_keymap["DLeft"]:
 						if (buttonPressed(val, btn)){
 
-							brush.cycle_brush_shape();
+							if (layer_or_palette == false)
+								brush.cycle_brush_shape();
 
 							if(debug_mode){
 								console.log("Pressed DLeft");
