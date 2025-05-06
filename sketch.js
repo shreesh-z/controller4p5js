@@ -11,7 +11,7 @@
  * Left shoulder (LB): Locks (& unlocks) a set brightness
  * LS button (LSB): Locks (& unlocks) a set saturation
  * RS button (RSB): cycles max brush sizes
- * A button : Unmapped
+ * A button : Toggle between color palette mode and layer mode
  * B button : Undo / Redo
  * X button : change blendmode to among
  * 		1. source-over (default) : (overwrites canvas with each brush stroke)
@@ -168,7 +168,7 @@ function draw() {
 		if (layer_manager.get_active_layer_transparency())
 			fill(color(0, 0, 50));
 		else fill(color(0, 0, 100));
-		
+
 		text(layer_manager.active_layer_index+1, brush.posX, brush.posY);
 	}
 
