@@ -24,7 +24,7 @@ class LayerManager {
 		// to flip between the undo/redo button's two states
 		this.undo_redo_selector = false;
 		// to store on which layer undo/redo was pressed
-		this.undo_redo_layer = 0;
+		this.undo_redo_layer_index = 0;
 
 		this.bg_hue = 0;
 		this.bg_sat = 0;
@@ -39,7 +39,7 @@ class LayerManager {
 		}
 
 		this.active_layer_index = 0;
-		this.undo_redo_layer = 0;
+		this.undo_redo_layer_index = 0;
 		this.main_sketch = this.layers[this.active_layer_index]; 
 		this.redo_sketch.clear();
 		this.undo_sketch.clear();
@@ -56,7 +56,7 @@ class LayerManager {
 		this.saved_for_undo = true;
 		this.redo_pressed = false;
 		this.undo_pressed = false;
-		this.undo_sketch.image(this.layers[this.undo_redo_layer], 0, 0);
+		this.undo_sketch.image(this.layers[this.undo_redo_layer_index], 0, 0);
 	}
 
 	do_undo(){
@@ -70,7 +70,7 @@ class LayerManager {
 		if (this.redo_pressed == true)
 			this.redo_pressed = false;
 		
-		let undo_layer = this.layers[this.undo_redo_layer];
+		let undo_layer = this.layers[this.undo_redo_layer_index];
 
 		// save main sketch to reload for later
 		this.redo_sketch.clear();
@@ -86,7 +86,7 @@ class LayerManager {
 		if (this.redo_pressed == false && this.undo_pressed == true){
 			this.save_for_undo();
 
-			let undo_layer = this.layers[this.undo_redo_layer];
+			let undo_layer = this.layers[this.undo_redo_layer_index];
 			undo_layer.clear();
 			undo_layer.image(this.redo_sketch, 0, 0);
 			this.redo_pressed = true;
@@ -94,6 +94,10 @@ class LayerManager {
 	}
 
 	toggle_undo_pressed(){
+
+		if (this.layer_transparency[this.undo_redo_layer_index])
+			return;
+
 		if (this.undo_redo_selector == false)
 			this.do_undo();
 		else
@@ -102,8 +106,8 @@ class LayerManager {
 		this.undo_redo_selector = !this.undo_redo_selector;
 	}
 
-	save_undo_layer(){
-		this.undo_redo_layer = this.active_layer_index;
+	save_undo_layer_index(){
+		this.undo_redo_layer_index = this.active_layer_index;
 	}
 
 	download_sketch(){
@@ -154,7 +158,7 @@ class LayerManager {
 		this.layer_transparency[this.active_layer_index] = !this.layer_transparency[this.active_layer_index];
 	}
 
-	get_active_layer_transparency(){
+	is_active_layer_transparent(){
 		return this.layer_transparency[this.active_layer_index];
 	}
 };

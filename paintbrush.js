@@ -1,6 +1,3 @@
-// import "./paint.js"
-// import "./brush.js"
-
 class PaintBrush {
 	constructor(paint, brush){
 		this.paint = paint;
@@ -67,11 +64,14 @@ class PaintBrush {
 		}
 	
 		if(val != -1 && val != 0){
-	
+			
+			if (layer_manager.is_active_layer_transparent())
+				return;
+
 			if (this.stroke_applied == false) {
 				// brush is being applied for the first time
+				layer_manager.save_undo_layer_index();
 				layer_manager.save_for_undo();
-				layer_manager.save_undo_layer();
 				layer_manager.undo_redo_selector = false;
 				this.stroke_applied = true;
 			}

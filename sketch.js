@@ -75,7 +75,7 @@
 let enable_webGL = false;
 let controllers = []
 let debug_mode = false;
-let show_framerate = false;
+let show_framerate = true;
 let deadzone = 0.08; // change according to your calibration
 
 let released = [];
@@ -87,6 +87,9 @@ let layer_or_palette_mode = false;
 
 let xdim = 1920;
 let ydim = 1080;
+let hud_height = 100;
+
+let hud_image;
 
 let erase_counter = 0;
 
@@ -122,9 +125,12 @@ let xbox_keymap = {
 function setup() {
 
 	if (enable_webGL)
-		screen_renderer = createCanvas(xdim, ydim, WEBGL);
+		createCanvas(xdim, ydim + hud_height, WEBGL);
 	else
-		screen_renderer = createCanvas(xdim, ydim);
+		createCanvas(xdim, ydim + hud_height);
+
+	hud_image = createGraphics(xdim, hud_height);
+	hud_image.clear();
 	
 	frameRate(60);
 	colorMode(HSB);
@@ -173,11 +179,11 @@ function draw() {
 	} else {
 		textSize(20);
 		colorMode(HSB);
-		if (layer_manager.get_active_layer_transparency())
+		if (layer_manager.is_active_layer_transparent())
 			fill(color(0, 0, 50));
 		else fill(color(0, 0, 100));
 
-		text(layer_manager.active_layer_index+1, brush.posX, brush.posY);
+		text(layer_manager.active_layer_index+1, brush.posX-5, brush.posY+7);
 	}
 
 	if (show_framerate){
@@ -187,6 +193,17 @@ function draw() {
 		textSize(20);
 		text(fps, 50, 50);
 	}
+
+	// hud_image.colorMode(HSB);
+	hud_image.background(0,0,0);
+
+	hud_image.colorMode(HSB);
+	hud_image.strokeWeight(5);
+	hud_image.stroke(0,0,50);
+	hud_image.fill(0,0,0);
+	hud_image.rect(0, 0, xdim, hud_height);
+
+	image(hud_image, 0, ydim);
 }
 
 function reset_all(){
