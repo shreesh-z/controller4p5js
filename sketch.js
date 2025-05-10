@@ -75,7 +75,8 @@
 let enable_webGL = false;
 let controllers = []
 let debug_mode = false;
-let show_framerate = true;
+let keymap_debug_mode = false; 
+let show_framerate = false;
 let deadzone = 0.08; // change according to your calibration
 
 let released = [];
@@ -93,7 +94,7 @@ let hud_image;
 
 let erase_counter = 0;
 
-let xbox_axismap = {
+let axismap = {
 	LSX: 0,
 	LSY: 1,
 	RSX: 2,
@@ -102,7 +103,7 @@ let xbox_axismap = {
 	RT: 5
 };
 
-let xbox_keymap = {
+let keymap = {
 	A: 0,
 	B: 1,
 	X: 3,
@@ -168,10 +169,16 @@ function draw() {
 	if (enable_webGL)
 		translate(-width/2,-height/2,0);
 
-	controller_event_handler();
-
 	colorMode(HSB);
 	background(layer_manager.get_bg_color());
+
+	if (keymap_debug_mode){
+		drawGamepad();
+		return;
+	}
+
+	controller_event_handler();
+
 	image(layer_manager.get_full_sketch(), 0, 0);
 
 	if (layer_or_palette_mode == false){
@@ -194,6 +201,10 @@ function draw() {
 		text(fps, 50, 50);
 	}
 
+	draw_HUD();
+}
+
+function draw_HUD(){
 	// hud_image.colorMode(HSB);
 	hud_image.background(0,0,0);
 
@@ -223,9 +234,6 @@ function draw() {
 	hud_image.text("BlendMode", 150, 85);
 
 	image(hud_image, 0, ydim);
-
-	// textSize(20);
-	// text(int(mouseX)+" "+int(mouseY), brush.posX, brush.posY);
 }
 
 function reset_all(){
@@ -252,7 +260,7 @@ function controller_event_handler() {
 			for (let ax = 0; ax < controller.axes.length; ax++) {
 				let val = controller.axes[ax];
 				switch(ax){
-					case xbox_axismap["LSX"]:
+					case axismap["LSX"]:
 						if (abs(val) > deadzone) {
 							
 							brush.moveX(val);
@@ -261,7 +269,7 @@ function controller_event_handler() {
 								console.log("LSX is being triggered");
 						}
 						break;
-					case xbox_axismap["LSY"]:
+					case axismap["LSY"]:
 						if (abs(val) > deadzone) {
 							
 							brush.moveY(val);
@@ -270,7 +278,7 @@ function controller_event_handler() {
 								console.log("LSY is being triggered");
 						}
 						break;
-					case xbox_axismap["RSX"]:
+					case axismap["RSX"]:
 						if (abs(val) > deadzone) {
 							
 							paint.update_HSX(val);
@@ -280,7 +288,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_axismap["RSY"]:
+					case axismap["RSY"]:
 						if (abs(val) > deadzone) {
 
 							paint.update_HSY(val);
@@ -290,11 +298,11 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_axismap["RT"]:
+					case axismap["RT"]:
 						if (controller.axes && controller.axes.length == 6)
 							paintbrush.draw_on_canvas(layer_manager, val, false);
 						break;
-					case xbox_axismap["LT"]:
+					case axismap["LT"]:
 						if (controller.axes && controller.axes.length == 6)
 							paint.update_brightness(val, false);
 						break;
@@ -308,7 +316,7 @@ function controller_event_handler() {
 			for (var btn = 0; btn < controller.buttons.length; btn++) {
 				let val = controller.buttons[btn];
 				switch(btn){
-					case xbox_keymap["Y"]:
+					case keymap["Y"]:
 						if (buttonPressed(val, btn)) {
 
 							layer_manager.set_bg(paint);
@@ -318,7 +326,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["B"]:
+					case keymap["B"]:
 						if (buttonPressed(val, btn)) {
 							
 							// only allow undo/redo if stroke has been lifted
@@ -330,7 +338,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["X"]:
+					case keymap["X"]:
 						if (buttonPressed(val, btn)) {
 							
 							paint.cycle_blendmode(layer_manager);
@@ -340,7 +348,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["A"]:
+					case keymap["A"]:
 						if (buttonPressed(val, btn)){
 
 							layer_or_palette_mode = !layer_or_palette_mode;
@@ -350,7 +358,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["DUp"]:
+					case keymap["DUp"]:
 						if (buttonPressed(val, btn)){
 							
 							if (layer_or_palette_mode == false)
@@ -363,7 +371,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["DRight"]:
+					case keymap["DRight"]:
 						if (buttonPressed(val, btn)){
 							
 							if (layer_or_palette_mode == false)
@@ -376,7 +384,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["DDown"]:
+					case keymap["DDown"]:
 						if (buttonPressed(val, btn)){
 							
 							if (layer_or_palette_mode == false){
@@ -391,7 +399,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["DLeft"]:
+					case keymap["DLeft"]:
 						if (buttonPressed(val, btn)){
 
 							if (layer_or_palette_mode == false)
@@ -402,7 +410,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["RB"]:
+					case keymap["RB"]:
 						if (buttonPressed(val, btn)) {
 							
 							brush.toggle_brush_size_lock();
@@ -412,7 +420,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["LB"]:
+					case keymap["LB"]:
 						if (buttonPressed(val, btn)) {
 							
 							paint.toggle_set_brightness();
@@ -422,7 +430,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["Start"]:
+					case keymap["Start"]:
 						if (buttonPressed(val, btn)) {
 							
 							layer_manager.download_sketch();
@@ -434,14 +442,14 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["Menu"]:
+					case keymap["Menu"]:
 						if (buttonPressed(val, btn)){
 							if(debug_mode){
 								console.log("Pressed Menu");
 							}
 						}
 						break;
-					case xbox_keymap["Select"]:
+					case keymap["Select"]:
 						if (buttonPressed(val, btn)) {
 
 							if(debug_mode){
@@ -456,15 +464,15 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["RT"]:
+					case keymap["RT"]:
 						if (controller.axes && controller.axes.length == 4)
 							paintbrush.draw_on_canvas(layer_manager, val, true);
 						break;
-					case xbox_keymap["LT"]:
+					case keymap["LT"]:
 						if (controller.axes && controller.axes.length == 4)
 							paint.update_brightness(val, true);
 						break;
-					case xbox_keymap["LSB"]:
+					case keymap["LSB"]:
 						if (buttonPressed(val, btn)) {
 							
 							paint.toggle_set_saturation();
@@ -474,7 +482,7 @@ function controller_event_handler() {
 							}
 						}
 						break;
-					case xbox_keymap["RSB"]:
+					case keymap["RSB"]:
 						if (buttonPressed(val, btn)) {
 
 							brush.cycle_max_brush_size();
