@@ -160,8 +160,6 @@ function setup() {
 
 	paint.set_blendmode(layer_manager);
 	background(layer_manager.get_bg_color());
-
-	// fullscreen(true);
 }
 
 function draw() {
@@ -232,6 +230,30 @@ function draw_HUD(){
 	hud_image.text(blendmode_text, 150, 37);
 	hud_image.textSize(20);
 	hud_image.text("BlendMode", 150, 85);
+
+	hud_image.fill(0,0,100);
+	hud_image.textSize(18);
+	hud_image.text(layer_manager.active_layer_index+1, 250, 37);
+	hud_image.textSize(20);
+	hud_image.text("Layer", 250, 85);
+
+	hud_image.fill(0,0,100);
+	hud_image.textSize(18);
+	hud_image.text(brush.is_brush_size_set, 370, 37);
+	hud_image.textSize(20);
+	hud_image.text("BrushSize Set", 370, 85);
+
+	hud_image.fill(0,0,100);
+	hud_image.textSize(18);
+	hud_image.text(paint.is_bright_set, 500, 37);
+	hud_image.textSize(20);
+	hud_image.text("BrightSet", 500, 85);
+
+	hud_image.fill(0,0,100);
+	hud_image.textSize(18);
+	hud_image.text(paint.is_sat_set, 600, 37);
+	hud_image.textSize(20);
+	hud_image.text("SatSet", 600, 85);
 
 	image(hud_image, 0, ydim);
 }
@@ -402,8 +424,9 @@ function controller_event_handler() {
 					case keymap["DLeft"]:
 						if (buttonPressed(val, btn)){
 
-							if (layer_or_palette_mode == false)
+							if (layer_or_palette_mode == false){
 								brush.cycle_brush_shape();
+							}
 
 							if(debug_mode){
 								console.log("Pressed DLeft");
