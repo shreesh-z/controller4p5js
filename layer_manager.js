@@ -95,9 +95,6 @@ class LayerManager {
 
 	toggle_undo_pressed(){
 
-		if (this.layer_transparency[this.undo_redo_layer_index])
-			return;
-
 		if (this.undo_redo_selector == false)
 			this.do_undo();
 		else

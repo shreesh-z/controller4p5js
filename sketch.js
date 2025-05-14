@@ -85,6 +85,7 @@ let pressed = [];
 let paint, brush, paintbrush, layer_manager;
 
 let layer_or_palette_mode = false;
+let show_active_layer_only = false;
 
 let xdim = 1920;
 let ydim = 1080;
@@ -177,13 +178,21 @@ function draw() {
 
 	controller_event_handler();
 
-	image(layer_manager.get_full_sketch(), 0, 0);
+	if (show_active_layer_only){
+		image(layer_manager.get_active_layer(), 0, 0);
+	} else {
+		image(layer_manager.get_full_sketch(), 0, 0);
+	}
 
 	if (layer_or_palette_mode == false){
 		paintbrush.show_current_paintbrush();
 	} else {
 		textSize(20);
 		colorMode(HSB);
+		if (show_active_layer_only){
+			fill(0,0,25);
+			circle(brush.posX, brush.posY, 50);
+		}
 		if (layer_manager.is_active_layer_transparent())
 			fill(color(0, 0, 50));
 		else fill(color(0, 0, 100));
@@ -385,8 +394,10 @@ function controller_event_handler() {
 							
 							if (layer_or_palette_mode == false)
 								paint.add_current_hue_to_custom_palette();
-							else
-								layer_manager.go_up_one_layer();
+							else{
+								if (paintbrush.stroke_applied == false)
+									layer_manager.go_up_one_layer();
+							}
 
 							if(debug_mode){
 								console.log("Pressed DUp");
@@ -398,8 +409,10 @@ function controller_event_handler() {
 							
 							if (layer_or_palette_mode == false)
 								paint.toggle_custom_palette();
-							else
-								layer_manager.toggle_active_layer_transparency();
+							else{
+								if (paintbrush.stroke_applied == false)
+									layer_manager.toggle_active_layer_transparency();
+							}
 
 							if(debug_mode){
 								console.log("Pressed DRight");
@@ -413,7 +426,8 @@ function controller_event_handler() {
 								paintbrush.toggle_cursor_display();
 								console.log("Showing current color palette gradient on cursor");
 							} else {
-								layer_manager.go_down_one_layer();
+								if (paintbrush.stroke_applied == false)
+									layer_manager.go_down_one_layer();
 							}
 
 							if(debug_mode){
@@ -426,6 +440,8 @@ function controller_event_handler() {
 
 							if (layer_or_palette_mode == false){
 								brush.cycle_brush_shape();
+							} else {
+								show_active_layer_only = !show_active_layer_only;
 							}
 
 							if(debug_mode){
