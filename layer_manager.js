@@ -56,6 +56,7 @@ class LayerManager {
 		this.saved_for_undo = true;
 		this.redo_pressed = false;
 		this.undo_pressed = false;
+		this.undo_sketch.clear();
 		this.undo_sketch.image(this.layers[this.undo_redo_layer_index], 0, 0);
 	}
 
