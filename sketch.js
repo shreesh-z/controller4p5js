@@ -76,7 +76,11 @@ let enable_webGL = false;
 let controllers = []
 let debug_mode = false;
 let keymap_debug_mode = false; 
-let show_framerate = false;
+let show_framerate = true;
+let mean_framerate = 0;
+let framerate_averager = 0;
+let framerate_max_count = 30;
+let framerate_iterator = 0;
 let deadzone = 0.08; // change according to your calibration
 
 let released = [];
@@ -200,14 +204,6 @@ function draw() {
 		text(layer_manager.active_layer_index+1, brush.posX-5, brush.posY+7);
 	}
 
-	if (show_framerate){
-		colorMode(HSB);
-		let fps = int(frameRate());
-		fill(color(0,0,100));
-		textSize(20);
-		text(fps, 50, 50);
-	}
-
 	draw_HUD();
 }
 
@@ -240,29 +236,49 @@ function draw_HUD(){
 	hud_image.textSize(20);
 	hud_image.text("BlendMode", 150, 85);
 
+	// current active layer
 	hud_image.fill(0,0,100);
 	hud_image.textSize(18);
 	hud_image.text(layer_manager.active_layer_index+1, 250, 37);
 	hud_image.textSize(20);
 	hud_image.text("Layer", 250, 85);
 
+	// brush size set or not
 	hud_image.fill(0,0,100);
 	hud_image.textSize(18);
 	hud_image.text(brush.is_brush_size_set, 370, 37);
 	hud_image.textSize(20);
 	hud_image.text("BrushSize Set", 370, 85);
 
+	// brightness set or not
 	hud_image.fill(0,0,100);
 	hud_image.textSize(18);
 	hud_image.text(paint.is_bright_set, 500, 37);
 	hud_image.textSize(20);
 	hud_image.text("BrightSet", 500, 85);
 
+	// saturation set or not
 	hud_image.fill(0,0,100);
 	hud_image.textSize(18);
 	hud_image.text(paint.is_sat_set, 600, 37);
 	hud_image.textSize(20);
 	hud_image.text("SatSet", 600, 85);
+
+	if (show_framerate){
+		if (framerate_iterator < framerate_max_count){
+			framerate_averager += int(frameRate());
+			framerate_iterator += 1;
+		} else {
+			mean_framerate = framerate_averager/framerate_max_count;
+			framerate_averager = 0;
+			framerate_iterator = 0;
+		}
+
+		hud_image.colorMode(HSB);
+		hud_image.fill(color(0,0,100));
+		hud_image.textSize(20);
+		hud_image.text(int(mean_framerate), xdim-50, 50);
+	}
 
 	image(hud_image, 0, ydim);
 }
