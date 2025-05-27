@@ -1,0 +1,65 @@
+Developed this thing as a fun project; worked on it during my free time.
+
+Prereqs:
+-> working thumbs & index fingers on both hands, two other fingers to hold a controller
+-> an xbox controller (I've not yet configured this for a PS controller)
+-> firefox browser (chromium uses a dogshit keymapping that I'm not willing to support as of now)
+-> an open mind & artistic thirst. yes this is a thirst trap.
+--> optional: previous gaming experience with a controller; will help with dexterity
+
+Why develop this?
+I prefer implementing novel systems for fun, so instead of writing paint from scratch,
+I developed paint for a different kind device.
+I've been told this system is great for "special needs children",,,
+Dude I'm the special needs adult, gimme a break. \lighthearted tone
+Yes, this is a special needs tool developed by someone who has special needs and
+can develop special needs tools.
+
+Read instructions to learn how to use, but honestly just start messing around with it.
+If you already know how analog controllers work, you don't need much guidance; the key mapping
+is pretty intuitive. Movement with the left joystick is similar to movement in video games;
+movement in the color space with the right joystick is similar to camera movement in 1st/3rd
+person games. The dpad is the only group of buttons that has mode-based behavior, so look that up.
+The rest, please figure it out yourself.
+
+-----------------------------------------------------------------------------------------
+
+Instructions: Attach an Xbox controller & have fun
+
+Key mapping:
+
+Left stick (LSX,LSY) : Moves the cursor
+Right stick (RSX,RSY): Changes color (in hue & saturation color space)
+Right trigger (RT): Brush (size varies acc. to how much you press the trigger)
+Left trigger (LT): Changes brightness
+Right shoulder (RB): Locks (& unlocks) a set brush size
+Left shoulder (LB): Locks (& unlocks) a set brightness
+LS button (LSB): Locks (& unlocks) a set saturation
+RS button (RSB): cycles max brush sizes
+A button : Toggle between color palette mode and layer mode
+B button : Undo / Redo
+X button : change blendmode to among
+		1. source-over (default) : (overwrites canvas with each brush stroke)
+		2. lighten : keeps the lightest color value while overwriting
+		3. soft-light: dark values in the source get darker and light values get lighter
+Y button : Sets background color to currently chosen HSV color
+
+Dpad Modes:
+    In Color Palette Mode (cursor shows current brush type & color palette):
+    Up button : choose (up to 4) colors on the wheel to create a custom gradient
+    1 color mode allows you to play with the chroma of only that one color
+    2 color mode allows to explore a cyclic RGB gradient of those two colors
+    same as above for 3 & 4 colors
+    button tops out at 4. Press Dleft to move to selected gradient space
+    Right button : End color selection. Press again to go back to default gradient space
+    Down button : Overlay current gradient on cursor (press & hold)
+    Left button : Cycle between brush types (currently circle & ellipse)
+
+    In Layer Mode (cursor shows current layer):
+    Up button : Go up one layer
+    Down button : Go down one layer
+    Right button : Toggle transparency/opacity of layer
+    Left button : currently unmapped
+Start button : Save current sketch (downloads it as a png)
+Menu button : Cannot be assigned (due to interference with windows game mode)
+Select button : Clear canvas (have to press it 4 times)
