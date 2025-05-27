@@ -88,7 +88,7 @@ let pressed = [];
 
 let paint, brush, paintbrush, layer_manager;
 
-let layer_or_palette_mode = false;
+let dpad_mode_manager;
 let show_active_layer_only = false;
 
 let xdim = 1920;
@@ -162,6 +162,7 @@ function setup() {
 	paint = new Paint([BLEND, LIGHTEST, SOFT_LIGHT]);
 	brush = new Brush(xdim, ydim);
 	paintbrush = new PaintBrush(paint, brush);
+	dpad_mode_manager = new DPadModeManager();
 
 	paint.set_blendmode(layer_manager);
 	background(layer_manager.get_bg_color());
@@ -188,7 +189,7 @@ function draw() {
 		image(layer_manager.get_full_sketch(), 0, 0);
 	}
 
-	if (layer_or_palette_mode == false){
+	if (dpad_mode_manager.layer_or_palette_mode == false){
 		paintbrush.show_current_paintbrush();
 	} else {
 		textSize(20);
@@ -248,21 +249,30 @@ function draw_HUD(){
 	hud_image.textSize(18);
 	hud_image.text(brush.is_brush_size_set, 370, 37);
 	hud_image.textSize(20);
-	hud_image.text("BrushSize Set", 370, 85);
+	hud_image.text("BshSz Lock", 370, 85);
 
 	// brightness set or not
 	hud_image.fill(0,0,100);
 	hud_image.textSize(18);
 	hud_image.text(paint.is_bright_set, 500, 37);
 	hud_image.textSize(20);
-	hud_image.text("BrightSet", 500, 85);
+	hud_image.text("Brg Lock", 500, 85);
 
 	// saturation set or not
 	hud_image.fill(0,0,100);
 	hud_image.textSize(18);
 	hud_image.text(paint.is_sat_set, 600, 37);
 	hud_image.textSize(20);
-	hud_image.text("SatSet", 600, 85);
+	hud_image.text("Sat Lock", 600, 85);
+
+	hud_image.fill(0,0,100);
+	hud_image.textSize(18);
+	if (dpad_mode_manager.layer_or_palette_mode)
+		hud_image.text("layer", 720, 37);
+	else
+		hud_image.text("palette", 720, 37);
+	hud_image.textSize(20);
+	hud_image.text("DpadMode", 720, 85);
 
 	if (show_framerate){
 		if (framerate_iterator < framerate_max_count){
@@ -286,6 +296,7 @@ function draw_HUD(){
 function reset_all(){
 	erase_counter = 0;
 	
+	dpad_mode_manager.reset();
 	layer_manager.reset();
 	paint.reset();
 	brush.reset();
@@ -294,6 +305,56 @@ function reset_all(){
 
 	console.log("Canvas erased. All modes cleared to default");
 }
+
+class DPadModeManager {
+	constructor(){
+		this.layer_or_palette_mode = false;
+	}
+
+	reset(){
+		this.layer_or_palette_mode = false;
+	}
+
+	toggle_modes(){
+		this.layer_or_palette_mode = !this.layer_or_palette_mode
+	}
+
+	DUp(){
+		if (this.layer_or_palette_mode == false)
+			paint.add_current_hue_to_custom_palette();
+		else{
+			if (paintbrush.stroke_applied == false)
+				layer_manager.go_up_one_layer();
+		}
+	}
+
+	DDown(){
+		if (this.layer_or_palette_mode == false){
+			paintbrush.toggle_cursor_display();
+			console.log("Showing current color palette gradient on cursor");
+		} else {
+			if (paintbrush.stroke_applied == false)
+				layer_manager.go_down_one_layer();
+		}
+	}
+
+	DRight(){
+		if (this.layer_or_palette_mode == false)
+			paint.toggle_custom_palette();
+		else{
+			if (paintbrush.stroke_applied == false)
+				layer_manager.toggle_active_layer_transparency();
+		}
+	}
+
+	DLeft(){
+		if (this.layer_or_palette_mode == false){
+			brush.cycle_brush_shape();
+		} else {
+			show_active_layer_only = !show_active_layer_only;
+		}
+	}
+};
 
 function controller_event_handler() {
 	var gamepads = navigator.getGamepads();
@@ -398,7 +459,7 @@ function controller_event_handler() {
 					case keymap["A"]:
 						if (buttonPressed(val, btn)){
 
-							layer_or_palette_mode = !layer_or_palette_mode;
+							dpad_mode_manager.toggle_modes();
 
 							if(debug_mode){
 								console.log("Pressed A");
@@ -408,12 +469,7 @@ function controller_event_handler() {
 					case keymap["DUp"]:
 						if (buttonPressed(val, btn)){
 							
-							if (layer_or_palette_mode == false)
-								paint.add_current_hue_to_custom_palette();
-							else{
-								if (paintbrush.stroke_applied == false)
-									layer_manager.go_up_one_layer();
-							}
+							dpad_mode_manager.DUp();
 
 							if(debug_mode){
 								console.log("Pressed DUp");
@@ -423,12 +479,7 @@ function controller_event_handler() {
 					case keymap["DRight"]:
 						if (buttonPressed(val, btn)){
 							
-							if (layer_or_palette_mode == false)
-								paint.toggle_custom_palette();
-							else{
-								if (paintbrush.stroke_applied == false)
-									layer_manager.toggle_active_layer_transparency();
-							}
+							dpad_mode_manager.DRight();
 
 							if(debug_mode){
 								console.log("Pressed DRight");
@@ -438,13 +489,7 @@ function controller_event_handler() {
 					case keymap["DDown"]:
 						if (buttonPressed(val, btn)){
 							
-							if (layer_or_palette_mode == false){
-								paintbrush.toggle_cursor_display();
-								console.log("Showing current color palette gradient on cursor");
-							} else {
-								if (paintbrush.stroke_applied == false)
-									layer_manager.go_down_one_layer();
-							}
+							dpad_mode_manager.DDown();
 
 							if(debug_mode){
 								console.log("Pressed DDown");
@@ -454,11 +499,7 @@ function controller_event_handler() {
 					case keymap["DLeft"]:
 						if (buttonPressed(val, btn)){
 
-							if (layer_or_palette_mode == false){
-								brush.cycle_brush_shape();
-							} else {
-								show_active_layer_only = !show_active_layer_only;
-							}
+							dpad_mode_manager.DLeft();
 
 							if(debug_mode){
 								console.log("Pressed DLeft");
