@@ -24,7 +24,7 @@ class PaintBrush {
 
 		let brush_size_temp = 50;
 
-		if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'circle'){
+		if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'line'){
 			hud_image.circle(x, y, brush_size_temp);
 		} else {
 			hud_image.ellipse(x, y, brush_size_temp, brush_size_temp/2);
@@ -53,7 +53,7 @@ class PaintBrush {
 								(this.brush.max_brush_size-this.brush.min_brush_size)/2;
 		}
 		
-		if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'circle'){
+		if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'line'){
 			circle(this.brush.posX, this.brush.posY, cursor_size_temp);
 		} else if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'ellipse') {
 			push();
@@ -90,20 +90,23 @@ class PaintBrush {
 			}
 
 			let canvas = layer_manager.get_active_layer();
-
-			canvas.noStroke();
-			colorMode(HSB); //, 360, 100, 100, 100);
-			canvas.fill(color(this.paint.my_hue, this.paint.my_sat, this.paint.my_bright));
 			
-			if (this.brush.brush_shapes[this.brush.brush_shape_index] == 'circle'){
-				canvas.circle(this.brush.posX, this.brush.posY, this.brush.brush_size);
+			if (this.brush.brush_shapes[this.brush.brush_shape_index] == 'line'){
+				canvas.colorMode(HSB); //, 360, 100, 100, 100);
+				canvas.stroke(color(this.paint.my_hue, this.paint.my_sat, this.paint.my_bright));
+				canvas.strokeWeight(this.brush.brush_size);
+				canvas.line(this.brush.prevPosX, this.brush.prevPosY, this.brush.posX, this.brush.posY);
 			}
 			else if(this.brush.brush_shapes[this.brush.brush_shape_index] == 'ellipse'){
+				canvas.noStroke();
+				canvas.colorMode(HSB); //, 360, 100, 100, 100);
+				canvas.fill(color(this.paint.my_hue, this.paint.my_sat, this.paint.my_bright));
+				
 				canvas.push();
-				canvas.translate(this.brush.posX, this.brush.posY);
-				angleMode(DEGREES);
-				canvas.rotate(cartesian_to_angle(this.brush.velX, this.brush.velY));
-				canvas.ellipse(0, 0, this.brush.brush_size, this.brush.brush_size/2);
+					canvas.translate(this.brush.posX, this.brush.posY);
+					angleMode(DEGREES);
+					canvas.rotate(cartesian_to_angle(this.brush.velX, this.brush.velY));
+					canvas.ellipse(0, 0, this.brush.brush_size, this.brush.brush_size/2);
 				canvas.pop();
 			}
 			
