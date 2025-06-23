@@ -105,7 +105,7 @@ class PaintBrush {
 				canvas.push();
 					canvas.translate(this.brush.posX, this.brush.posY);
 					angleMode(DEGREES);
-					canvas.rotate(cartesian_to_angle(this.brush.velX, this.brush.velY));
+					canvas.rotate(cartesian_to_angle(this.brush.velX, this.brush.velY) + Math.random()*30 - 15);
 					canvas.ellipse(0, 0, this.brush.brush_size, this.brush.brush_size/2);
 				canvas.pop();
 			}
