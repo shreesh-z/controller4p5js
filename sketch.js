@@ -99,35 +99,6 @@ let hud_image;
 
 let erase_counter = 0;
 
-let axismap = {
-	LSX: 0,
-	LSY: 1,
-	RSX: 2,
-	RSY: 3,
-	LT: 4,
-	RT: 5
-};
-
-let keymap = {
-	A: 0,
-	B: 1,
-	X: 3,
-	Y: 2,
-	LB: 4,
-	RB: 5,
-	LT: 6, // use value as axis if axis_len == 4
-	RT: 7, // use value as axis if axis_len == 4
-	Select: 8,
-	Start: 9,
-	LSB: 10,
-	RSB: 11,
-	DUp: 12,
-	DDown: 13,
-	DLeft: 14,
-	DRight: 15,
-	Menu: 16
-};
-
 function setup() {
 
 	if (enable_webGL)
@@ -309,6 +280,8 @@ function reset_all(){
 class DPadModeManager {
 	constructor(){
 		this.layer_or_palette_mode = false;
+		this.dx_prev_val = 0;
+		this.dy_prev_val = 0;
 	}
 
 	reset(){
@@ -317,6 +290,26 @@ class DPadModeManager {
 
 	toggle_modes(){
 		this.layer_or_palette_mode = !this.layer_or_palette_mode
+	}
+
+	DY(val){
+		if (this.dy_prev_val != val){
+			if (val == +1)
+				this.DDown();
+			else if (val == -1)
+				this.DUp();
+		}
+		this.dy_prev_val = val;
+	}
+
+	DX(val){
+		if (this.dx_prev_val != val){
+			if (val == +1)
+				this.DRight();
+			else if (val == -1)
+				this.DLeft();
+		}
+		this.dx_prev_val = val;
 	}
 
 	DUp(){
@@ -407,12 +400,18 @@ function controller_event_handler() {
 						}
 						break;
 					case axismap["RT"]:
-						if (controller.axes && controller.axes.length == 6)
+						if (controller.axes && controller.axes.length >= 6)
 							paintbrush.draw_on_canvas(layer_manager, val, false);
 						break;
 					case axismap["LT"]:
-						if (controller.axes && controller.axes.length == 6)
+						if (controller.axes && controller.axes.length >= 6)
 							paint.update_brightness(val, false);
+						break;
+					case axismap["DX"]:
+						dpad_mode_manager.DX(val);
+						break;
+					case axismap["DY"]:
+						dpad_mode_manager.DY(val);
 						break;
 				}
 			}
@@ -598,10 +597,21 @@ function controller_event_handler() {
 function gamepadHandler(event, connecting) {
 	let gamepad = event.gamepad;
 	if (connecting) {
-	print("Connecting to controller " + gamepad.index);
-	controllers[gamepad.index] = gamepad;
+		print("Connecting to controller " + gamepad.index);
+		controllers[gamepad.index] = gamepad;
+
+		// set keymap based on gamepad
+		if (gamepad.buttons.length == 11){
+			keymap = keymap_chromium;
+			axismap = axismap_chromium;
+		}
+		else{
+			keymap = keymap_firefox;
+			axismap = axismap_firefox;
+		}
+		
 	} else {
-	delete controllers[gamepad.index];
+		delete controllers[gamepad.index];
 	}
 }
 

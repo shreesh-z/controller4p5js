@@ -1,5 +1,6 @@
-// xbox linux firefox
-let axismap_6 = {
+let keymap, axismap;
+
+let axismap_firefox = {
 	LSX: 0,
 	LSY: 1,
 	RSX: 2,
@@ -8,7 +9,18 @@ let axismap_6 = {
 	RT: 5
 };
 
-let keymap_17 = {
+let axismap_chromium = {
+	LSX: 0,
+	LSY: 1,
+	LT: 2,
+	RSX: 3,
+	RSY: 4,
+	RT: 5,
+	DX: 6,
+	DY: 7
+};
+
+let keymap_firefox = {
 	A: 0,
 	B: 1,
 	X: 3,
@@ -28,15 +40,18 @@ let keymap_17 = {
 	Menu: 16
 };
 
-let axismap_4 = {
-	LSX: 0,
-	LSY: 1,
-	RSX: 2,
-	RSY: 3
-};
-
-function xbox_linux_firefox_map(){
-	return;
+let keymap_chromium = {
+	A: 0,
+	B: 1,
+	X: 2,
+	Y: 3,
+	LB: 4,
+	RB: 5,
+	Select: 6,
+	Start: 7,
+	Menu: 8,
+	LSB: 9,
+	RSB: 10
 }
 
 function drawGamepad() {
