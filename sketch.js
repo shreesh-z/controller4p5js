@@ -73,7 +73,6 @@
  */
 
 let enable_webGL = false;
-let controllers = []
 let debug_mode = false;
 let keymap_debug_mode = false; 
 let show_framerate = true;
@@ -82,9 +81,6 @@ let framerate_averager = 0;
 let framerate_max_count = 30;
 let framerate_iterator = 0;
 let deadzone = 0.08; // change according to your calibration
-
-let released = [];
-let pressed = [];
 
 let paint, brush, paintbrush, layer_manager;
 
@@ -98,6 +94,8 @@ let hud_height = 100;
 let hud_image;
 
 let erase_counter = 0;
+
+let controller = new Controller();
 
 function setup() {
 
@@ -113,21 +111,6 @@ function setup() {
 	colorMode(HSB);
 
 	noStroke();
-	window.addEventListener("gamepadconnected", function(e) {
-		gamepadHandler(e, true);
-		console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
-		e.gamepad.index, e.gamepad.id,
-		e.gamepad.buttons.length, e.gamepad.axes.length);
-	});
-	window.addEventListener("gamepaddisconnected", function(e) {
-		console.log("Gamepad disconnected from index %d: %s",
-		e.gamepad.index, e.gamepad.id);
-		gamepadHandler(e, false);
-	});
-	for (var i = 0; i < 17; i++) {
-		released[i] = true;
-		pressed[i] = false;
-	}
 
 	layer_manager = new LayerManager(xdim, ydim);
 	paint = new Paint([BLEND, LIGHTEST, SOFT_LIGHT]);
@@ -137,6 +120,8 @@ function setup() {
 
 	paint.set_blendmode(layer_manager);
 	background(layer_manager.get_bg_color());
+
+	init_controller();
 }
 
 function draw() {
@@ -152,7 +137,7 @@ function draw() {
 		return;
 	}
 
-	controller_event_handler();
+	controller.event_handler();
 
 	if (show_active_layer_only){
 		image(layer_manager.get_active_layer(), 0, 0);
@@ -349,290 +334,103 @@ class DPadModeManager {
 	}
 };
 
-function controller_event_handler() {
-	var gamepads = navigator.getGamepads();
-	
-	for (let i in controllers) {
+function init_controller(){
 
-		let controller = gamepads[i];
-		
-		// first handle axes
-		if (controller.axes) {
-			for (let ax = 0; ax < controller.axes.length; ax++) {
-				let val = controller.axes[ax];
-				switch(ax){
-					case axismap["LSX"]:
-						if (abs(val) > deadzone) {
-							
-							brush.moveX(val);
-							
-							if (debug_mode)
-								console.log("LSX is being triggered");
-						}
-						break;
-					case axismap["LSY"]:
-						if (abs(val) > deadzone) {
-							
-							brush.moveY(val);
-							
-							if (debug_mode)
-								console.log("LSY is being triggered");
-						}
-						break;
-					case axismap["RSX"]:
-						if (abs(val) > deadzone) {
-							
-							paint.update_HSX(val);
+	// all key bindings
 
-							if (debug_mode){
-								console.log("RSX is being triggered");
-							}
-						}
-						break;
-					case axismap["RSY"]:
-						if (abs(val) > deadzone) {
-
-							paint.update_HSY(val);
-							
-							if (debug_mode){
-								console.log("RSY is being triggered");
-							}
-						}
-						break;
-					case axismap["RT"]:
-						if (controller.axes && controller.axes.length >= 6)
-							paintbrush.draw_on_canvas(layer_manager, val, false);
-						break;
-					case axismap["LT"]:
-						if (controller.axes && controller.axes.length >= 6)
-							paint.update_brightness(val, false);
-						break;
-					case axismap["DX"]:
-						dpad_mode_manager.DX(val);
-						break;
-					case axismap["DY"]:
-						dpad_mode_manager.DY(val);
-						break;
-				}
-			}
+	controller.add_axis_function("LSX", function(val) {
+		if (abs(val) > deadzone) {
+			brush.moveX(val);
 		}
+	});
 
-		// now handle buttons
-
-		if (controller.buttons) {
-			for (var btn = 0; btn < controller.buttons.length; btn++) {
-				let val = controller.buttons[btn];
-				switch(btn){
-					case keymap["Y"]:
-						if (buttonPressed(val, btn)) {
-
-							layer_manager.set_bg(paint);
-
-							if(debug_mode){
-								console.log("Pressed Y");
-							}
-						}
-						break;
-					case keymap["B"]:
-						if (buttonPressed(val, btn)) {
-							
-							// only allow undo/redo if stroke has been lifted
-							if (paintbrush.stroke_applied == false)
-								layer_manager.toggle_undo_pressed();
-							
-							if(debug_mode){
-								console.log("Pressed B");
-							}
-						}
-						break;
-					case keymap["X"]:
-						if (buttonPressed(val, btn)) {
-							
-							paint.cycle_blendmode(layer_manager);
-							
-							if(debug_mode){
-								console.log("Pressed X");
-							}
-						}
-						break;
-					case keymap["A"]:
-						if (buttonPressed(val, btn)){
-
-							dpad_mode_manager.toggle_modes();
-
-							if(debug_mode){
-								console.log("Pressed A");
-							}
-						}
-						break;
-					case keymap["DUp"]:
-						if (buttonPressed(val, btn)){
-							
-							dpad_mode_manager.DUp();
-
-							if(debug_mode){
-								console.log("Pressed DUp");
-							}
-						}
-						break;
-					case keymap["DRight"]:
-						if (buttonPressed(val, btn)){
-							
-							dpad_mode_manager.DRight();
-
-							if(debug_mode){
-								console.log("Pressed DRight");
-							}
-						}
-						break;
-					case keymap["DDown"]:
-						if (buttonPressed(val, btn)){
-							
-							dpad_mode_manager.DDown();
-
-							if(debug_mode){
-								console.log("Pressed DDown");
-							}
-						}
-						break;
-					case keymap["DLeft"]:
-						if (buttonPressed(val, btn)){
-
-							dpad_mode_manager.DLeft();
-
-							if(debug_mode){
-								console.log("Pressed DLeft");
-							}
-						}
-						break;
-					case keymap["RB"]:
-						if (buttonPressed(val, btn)) {
-							
-							brush.toggle_brush_size_lock();
-
-							if(debug_mode){
-								console.log("Pressed RB");
-							}
-						}
-						break;
-					case keymap["LB"]:
-						if (buttonPressed(val, btn)) {
-							
-							paint.toggle_set_brightness();
-
-							if(debug_mode){
-								console.log("Pressed LB");
-							}
-						}
-						break;
-					case keymap["Start"]:
-						if (buttonPressed(val, btn)) {
-							
-							layer_manager.download_sketch();
-
-							console.log("Downloaded sketch");
-
-							if(debug_mode){
-								console.log("Pressed Start");
-							}
-						}
-						break;
-					case keymap["Menu"]:
-						if (buttonPressed(val, btn)){
-							if(debug_mode){
-								console.log("Pressed Menu");
-							}
-						}
-						break;
-					case keymap["Select"]:
-						if (buttonPressed(val, btn)) {
-
-							if(debug_mode){
-								console.log("Pressed Select");
-							}
-
-							if(erase_counter == 3){
-								reset_all();
-							} else{
-								console.log("Press the button " + (3-erase_counter) + " more times to erase canvas");
-								erase_counter++;
-							}
-						}
-						break;
-					case keymap["RT"]:
-						if (controller.axes && controller.axes.length == 4)
-							paintbrush.draw_on_canvas(layer_manager, val, true);
-						break;
-					case keymap["LT"]:
-						if (controller.axes && controller.axes.length == 4)
-							paint.update_brightness(val, true);
-						break;
-					case keymap["LSB"]:
-						if (buttonPressed(val, btn)) {
-							
-							paint.toggle_set_saturation();
-
-							if(debug_mode){
-								console.log("Pressed LSB");
-							}
-						}
-						break;
-					case keymap["RSB"]:
-						if (buttonPressed(val, btn)) {
-
-							brush.cycle_max_brush_size();
-
-							if(debug_mode){
-								console.log("Pressed RSB");
-							}
-						}
-						break;
-				}
-			}
+	controller.add_axis_function("LSY", function(val) {
+		if (abs(val) > deadzone) {
+			brush.moveY(val);
 		}
-		
-	}
-}
-
-function gamepadHandler(event, connecting) {
-	let gamepad = event.gamepad;
-	if (connecting) {
-		print("Connecting to controller " + gamepad.index);
-		controllers[gamepad.index] = gamepad;
-
-		// set keymap based on gamepad
-		if (gamepad.buttons.length == 11){
-			keymap = keymap_chromium;
-			axismap = axismap_chromium;
+	});
+	controller.add_axis_function("RSX", function(val) {
+		if (abs(val) > deadzone) {
+			
+			paint.update_HSX(val);
 		}
-		else{
-			keymap = keymap_firefox;
-			axismap = axismap_firefox;
-		}
-		
-	} else {
-		delete controllers[gamepad.index];
-	}
-}
+	});
+	controller.add_axis_function("RSY", function(val) {
+		if (abs(val) > deadzone) {
 
-function buttonPressed(b, index){
-	if (typeof(b) == "object"){
-		let flipped_on = false;
-		if(b.pressed){
-			if(pressed[index] == false){
-				flipped_on = true;
-				pressed[index] = true;
-				released[index] = false;
-			}
-		} else {
-			if(released[index] == false){
-				released[index] = true;
-				pressed[index] = false;
-			}
+			paint.update_HSY(val);
 		}
-		return flipped_on;
-	}
-	return b > 0.9;
+	});
+	controller.add_axis_function("RT", function(val) {
+		paintbrush.draw_on_canvas(layer_manager, val, false);
+	});
+	controller.add_axis_function("LT", function(val) {
+		paint.update_brightness(val, false);
+	});
+
+	// all button bindings
+
+	controller.add_axis_function("DX", function(val) {
+		dpad_mode_manager.DX(val);
+	});
+	controller.add_axis_function("DY", function(val) {
+		dpad_mode_manager.DY(val);
+	});
+	controller.add_button_function("Y", function(val) {
+		layer_manager.set_bg(paint);
+	});
+	controller.add_button_function("B", function(val) {
+		if (paintbrush.stroke_applied == false)
+			layer_manager.toggle_undo_pressed();
+	});							
+	controller.add_button_function("X", function(val) {
+		paint.cycle_blendmode(layer_manager);
+	});
+	controller.add_button_function("A", function(val) {
+		dpad_mode_manager.toggle_modes();
+	});
+	controller.add_button_function("DUp", function(val) {
+		dpad_mode_manager.DUp();
+	});
+	controller.add_button_function("DRight", function(val) {
+		dpad_mode_manager.DRight();
+	});
+	controller.add_button_function("DDown", function(val) {
+		dpad_mode_manager.DDown();
+	});
+	controller.add_button_function("DLeft", function(val) {
+		dpad_mode_manager.DLeft();
+	});
+	controller.add_button_function("RB", function(val) {
+		brush.toggle_brush_size_lock();
+	});
+	controller.add_button_function("LB", function(val) {
+		paint.toggle_set_brightness();
+	});
+	controller.add_button_function("Start", function(val) {
+		layer_manager.download_sketch();
+		console.log("Downloaded sketch");
+	});
+	controller.add_button_function("Select", function(val) {
+		if(erase_counter == 3){
+			reset_all();
+		} else{
+			console.log("Press the button " + (3-erase_counter) + " more times to erase canvas");
+			erase_counter++;
+		}
+	});
+	controller.add_button_function("RT", function(val) {
+		paintbrush.draw_on_canvas(layer_manager, val, true);
+	});
+	controller.add_button_function("LT", function(val) {
+		paint.update_brightness(val, true);
+	});
+	controller.add_button_function("LSB", function(val) {
+		paint.toggle_set_saturation();
+	});
+	controller.add_button_function("RSB", function(val) {
+		brush.cycle_max_brush_size();
+	});
 }
 
 function cartesian_to_angle(x, y){
