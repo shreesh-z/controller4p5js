@@ -3,9 +3,9 @@ class LayerManager {
 
 		this.layers = [
 			createGraphics(xdim, ydim),
-			createGraphics(xdim, ydim),
-			createGraphics(xdim, ydim),
-			createGraphics(xdim, ydim)
+			// createGraphics(xdim, ydim),
+			// createGraphics(xdim, ydim),
+			// createGraphics(xdim, ydim)
 		];
 
 		this.layer_transparency = [];

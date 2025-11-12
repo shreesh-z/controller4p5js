@@ -23,7 +23,7 @@ class Paint {
 		this.blendmode_selector = 0;
 	}
 
-	cartesian_to_hue(x, y) {
+	cartesian_to_huesat(x, y) {
 	
 		let angle = cartesian_to_angle(x, y);
 	
@@ -42,19 +42,24 @@ class Paint {
 				let blend_color2 = color(this.custom_palette_hues[gradient_hue_index2], 100, 100);
 				let max_val_for_lerp = 360/this.custom_palette_hues.length;
 				let lerp_ret = lerpColor(blend_color1, blend_color2, (angle % max_val_for_lerp)/max_val_for_lerp);
-				return hue(lerp_ret);
+				return [hue(lerp_ret), saturation(lerp_ret)];
 			}
 		}
 		
 		// angle in degrees is how my_hue is processed anyways by default
-		return angle;
+		return [angle, -1];
 	}
 
 	__update_HS(){
-		this.my_hue = this.cartesian_to_hue(this.huesatX, this.huesatY);
+		let new_sat;
+		[this.my_hue, new_sat] = this.cartesian_to_huesat(this.huesatX, this.huesatY);
 
 		if (!this.is_sat_set){
-			let new_sat = Math.sqrt((this.huesatX*this.huesatX + this.huesatY*this.huesatY));
+			if (new_sat != -1){
+				this.my_sat = new_sat;
+			}
+			// console.log(this.my_hue, new_sat);
+			new_sat = Math.sqrt((this.huesatX*this.huesatX + this.huesatY*this.huesatY));
 			if (new_sat > 0.9){
 				this.my_sat = 100;
 			} else {

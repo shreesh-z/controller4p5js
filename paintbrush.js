@@ -132,9 +132,14 @@ class PaintBrush {
 
 				if ( rad > this.min_cursor_size && rad <= this.max_cursor_size ){
 					
-					let cursor_hue = this.paint.cartesian_to_hue(xstep, ystep);
+					let cursor_hue, new_cursor_sat; 
+					[cursor_hue, new_cursor_sat] = this.paint.cartesian_to_huesat(xstep, ystep);
 					let cursor_angle = cartesian_to_angle(xstep, ystep);
-					let cursor_sat = (rad/this.max_cursor_size)*100;
+					let cursor_sat;
+					if (new_cursor_sat == -1)
+						cursor_sat = (rad/this.max_cursor_size)*100;
+					else
+						cursor_sat = new_cursor_sat;
 					let cursor_bright = 100;
 					
 					let smallest_angle_diff = Infinity;
